@@ -1,7 +1,7 @@
 import Chart from 'chart.js/auto';
 import { INITIAL_ROUTINE } from './routine-data.js';
 import { auth, db, googleProvider } from './firebase.js';
-import { onAuthStateChanged, signInWithRedirect, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Core State Manager
@@ -2253,6 +2253,15 @@ class FemmeFitApp {
 window.app = new FemmeFitApp();
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Handle any pending redirect result first (mobile/PWA flow)
+  getRedirectResult(auth).then((result) => {
+    if (result && result.user) {
+      console.log('Redirect result received:', result.user.email);
+    }
+  }).catch((e) => {
+    console.warn('getRedirectResult error (can be normal if no pending redirect):', e.code);
+  });
+
   onAuthStateChanged(auth, async (user) => {
     const loadingEl   = document.getElementById('auth-loading');
     const loginEl     = document.getElementById('login-screen');
@@ -2286,11 +2295,23 @@ window.signInWithGoogle = async () => {
   const btn = document.getElementById('btn-google-signin');
   if (btn) { btn.disabled = true; btn.innerText = 'Iniciando sesión...'; }
   try {
-    await signInWithRedirect(auth, googleProvider);
+    // Try popup first (works on desktop/localhost)
+    await signInWithPopup(auth, googleProvider);
   } catch (e) {
-    console.error('Sign-in error:', e);
-    if (btn) { btn.disabled = false; btn.innerHTML = 'Continuar con Google'; }
-    alert('Error al iniciar sesión. Por favor intenta de nuevo.');
+    // If popup is blocked, fall back to redirect (mobile PWA)
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (e2) {
+        console.error('Redirect sign-in error:', e2);
+        if (btn) { btn.disabled = false; btn.innerHTML = 'Continuar con Google'; }
+        alert('Error al iniciar sesión: ' + (e2.message || 'intenta de nuevo.'));
+      }
+    } else {
+      console.error('Sign-in error:', e);
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Continuar con Google'; }
+      alert('Error al iniciar sesión: ' + (e.message || 'intenta de nuevo.'));
+    }
   }
 };
 
