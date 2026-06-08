@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FemmeFit &amp; Cycle Sync</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d0a16" />
+    <meta name="description" content="Tu app premium de gym con seguimiento de ciclo menstrual e hipertrofia inteligente." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FemmeFit" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+
+    <!-- ===== AUTH LOADING SCREEN ===== -->
+    <div id="auth-loading" style="
+      position: fixed; inset: 0; z-index: 500;
+      background: #0d0a16;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 20px;
+    ">
+      <div style="
+        width: 80px; height: 80px; border-radius: 22px;
+        background: linear-gradient(135deg, #e879a8, #a78bfa);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 36px; box-shadow: 0 0 30px rgba(232,121,168,0.4);
+        animation: pulse 1.5s ease-in-out infinite;
+      ">🏋️</div>
+      <div style="text-align: center;">
+        <p style="color: #fdf4ff; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 4px;">FemmeFit</p>
+        <p style="color: #7c6a95; font-family: 'Outfit', sans-serif; font-size: 13px;">Cargando tu app...</p>
+      </div>
+      <style>@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }</style>
+    </div>
+
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-screen" style="
+      position: fixed; inset: 0; z-index: 400;
+      background: #0d0a16;
+      background-image:
+        radial-gradient(ellipse at 20% 10%, rgba(232,121,168,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(167,139,250,0.12) 0%, transparent 50%);
+      display: none; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 32px 24px; text-align: center;
+      font-family: 'Outfit', sans-serif;
+    ">
+      <!-- Logo -->
+      <div style="
+        width: 96px; height: 96px; border-radius: 26px; margin-bottom: 28px;
+        background: linear-gradient(135deg, rgba(232,121,168,0.2), rgba(167,139,250,0.2));
+        border: 1px solid rgba(232,121,168,0.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 44px;
+        box-shadow: 0 0 40px rgba(232,121,168,0.2);
+      ">🏋️</div>
+
+      <h1 style="
+        font-size: 32px; font-weight: 800; margin-bottom: 8px;
+        background: linear-gradient(130deg, #fff 20%, #e879a8 65%, #c084fc 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      ">FemmeFit</h1>
+      <p style="color: #e879a8; font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">
+        Cycle Sync &amp; Hypertrophy
+      </p>
+      <p style="color: #7c6a95; font-size: 14px; max-width: 300px; line-height: 1.6; margin-bottom: 40px;">
+        Tu rutina personalizada, tu ciclo menstrual y tu progreso — todo en un solo lugar.
+      </p>
+
+      <!-- Google Sign-In Button -->
+      <button id="btn-google-signin" onclick="window.signInWithGoogle()" style="
+        display: flex; align-items: center; gap: 14px;
+        padding: 14px 28px; border-radius: 14px; border: none; cursor: pointer;
+        background: #fff; color: #1f1f1f;
+        font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        transition: all 0.2s ease;
+        max-width: 300px; width: 100%;
+      " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px rgba(0,0,0,0.6)';"
+         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.5)';">
+        <svg width="20" height="20" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continuar con Google
+      </button>
+
+      <p style="color: #4a3d5c; font-size: 11px; margin-top: 24px; max-width: 280px; line-height: 1.5;">
+        Tus datos se guardan de forma segura en la nube.<br/>Solo tú puedes acceder a tu información.
+      </p>
+    </div>
+
+    <!-- ===== MAIN APP ===== -->
+    <div id="app-wrapper" style="display: none;">
+      
+      <!-- Top Title Bar -->
+      <header style="padding: 14px 16px; border-bottom: 1px solid rgba(200,130,255,0.10); background: rgba(10, 6, 20, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 50;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h1 style="margin: 0; font-size: 21px;">FemmeFit</h1>
+            <span style="font-size: 10px; color: var(--color-rose); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px;">Cycle Sync &amp; Hypertrophy</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div id="header-cycle-badge" class="cycle-phase-badge menstrual" style="display: none;">Folicular</div>
+            <div id="header-user" style="display: none; align-items: center; gap: 8px;">
+              <img id="user-avatar" src="" alt="" style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--color-rose); object-fit: cover;" />
+              <button onclick="window.signOutUser()" title="Cerrar sesión" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px;">
+                <i data-lucide="log-out" style="width: 15px; height: 15px;"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        
+        <!-- ================= VIEW: HOY ================= -->
+        <div id="view-hoy" class="view-container active">
+          <!-- Menstrual Coach Widget -->
+          <div class="cycle-coach-widget card" id="today-coach-widget">
+            <div class="cycle-phase-header">
+              <span class="coach-title" style="font-weight: 700; font-size: 14px; color: var(--color-violet); display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Coach Menstrual
+              </span>
+              <span class="cycle-phase-badge folicular" id="today-coach-phase">Fase Folicular</span>
+            </div>
+            <p class="coach-advice-text" id="today-coach-text">Cargando consejos del ciclo...</p>
+          </div>
+
+          <!-- Day Selection Pills -->
+          <div class="day-selector-pills" id="day-selector">
+            <button class="pill active" data-day="lunes">Lun</button>
+            <button class="pill" data-day="martes">Mar</button>
+            <button class="pill" data-day="miercoles">Mié</button>
+            <button class="pill" data-day="jueves">Jue</button>
+            <button class="pill" data-day="viernes">Vie</button>
+          </div>
+
+          <!-- Current Day Workout Focus -->
+          <div style="margin-bottom: 20px;">
+            <h2 id="today-workout-name" style="margin-bottom: 4px;">Lunes — Pierna Completa</h2>
+            <p id="today-workout-focus" style="font-size: 13px;">Énfasis cuádriceps + glúteo lateral</p>
+          </div>
+
+          <!-- FLOW: Calentamiento -->
+          <div class="flow-step card" id="step-warmup">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-warmup')">
+              <div>
+                <div class="flow-step-title">1. Calentamiento General</div>
+                <div class="flow-step-subtitle" id="warmup-subtitle">5 a 8 minutos • Caminadora o bici</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <p style="margin-bottom: 12px; font-size: 13px;" id="warmup-desc">No debe cansarte. Solo es para subir temperatura.</p>
+              <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <select id="warmup-machine" style="flex: 1;">
+                  <option value="caminadora">Caminadora suave</option>
+                  <option value="bicicleta">Bicicleta</option>
+                  <option value="eliptica">Elíptica</option>
+                  <option value="escaladora">Escaladora suave</option>
+                </select>
+                <button class="btn btn-lavender btn-small" id="btn-start-warmup">
+                  <i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar 5m
+                </button>
+              </div>
+              <label class="check-item">
+                <input type="checkbox" id="check-warmup-done" onchange="app.completeStep('step-warmup', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Calentamiento completado</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Movilidad y Activación -->
+          <div class="flow-step card" id="step-mobility">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-mobility')">
+              <div>
+                <div class="flow-step-title">2. Movilidad + Activación</div>
+                <div class="flow-step-subtitle">2 Rondas • 5 a 8 minutos</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <p style="margin-bottom: 12px; font-size: 13px;">Haz 2 rondas de los siguientes ejercicios sin peso:</p>
+              <div id="mobility-exercises-list">
+                <!-- Inyectado dinámicamente -->
+              </div>
+              <label class="check-item" style="margin-top: 14px;">
+                <input type="checkbox" id="check-mobility-done" onchange="app.completeStep('step-mobility', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Movilidad y activación completadas</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Series de Aproximación -->
+          <div class="flow-step card" id="step-approximation">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-approximation')">
+              <div>
+                <div class="flow-step-title">3. Series de Aproximación</div>
+                <div class="flow-step-subtitle">Antes del primer ejercicio pesado</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <p style="font-size: 13px; margin-bottom: 12px;" id="approx-text">Instrucciones de aproximación...</p>
+              <label class="check-item">
+                <input type="checkbox" id="check-approx-done" onchange="app.completeStep('step-approximation', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Aproximaciones listas</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Pesas -->
+          <div class="flow-step card" id="step-pesas">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-pesas')">
+              <div>
+                <div class="flow-step-title">4. Entrenamiento de Pesas</div>
+                <div class="flow-step-subtitle">Fase principal de fuerza e hipertrofia</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <div id="pesas-exercises-list">
+                <!-- Ejercicios inyectados dinámicamente -->
+              </div>
+              <label class="check-item" style="margin-top: 14px;">
+                <input type="checkbox" id="check-pesas-done" onchange="app.completeStep('step-pesas', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Entrenamiento de pesas finalizado</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Cardio -->
+          <div class="flow-step card" id="step-cardio">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-cardio')">
+              <div>
+                <div class="flow-step-title">5. Trabajo de Cardio</div>
+                <div class="flow-step-subtitle" id="cardio-subtitle">Hoy no toca cardio formal</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <div id="cardio-content-area">
+                <!-- Dinámico si toca o no -->
+              </div>
+            </div>
+          </div>
+
+          <!-- FLOW: Vuelta a la Calma -->
+          <div class="flow-step card" id="step-cooldown">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-cooldown')">
+              <div>
+                <div class="flow-step-title">6. Vuelta a la Calma</div>
+                <div class="flow-step-subtitle">3–5 min Caminando suave</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span id="cooldown-text-desc">Camina despacio para bajar pulsaciones.</span>
+                <button class="btn btn-lavender btn-small" id="btn-start-cooldown">▶ Iniciar 3m</button>
+              </div>
+              <label class="check-item">
+                <input type="checkbox" id="check-cooldown-done" onchange="app.completeStep('step-cooldown', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Vuelta a la calma completada</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Estiramiento Suave -->
+          <div class="flow-step card" id="step-stretching">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-stretching')">
+              <div>
+                <div class="flow-step-title">7. Estiramiento Suave</div>
+                <div class="flow-step-subtitle">5 min de recuperación</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <p style="font-size: 13px; margin-bottom: 12px;" id="stretching-desc">Estira los músculos trabajados hoy para relajar el sistema nervioso.</p>
+              <label class="check-item">
+                <input type="checkbox" id="check-stretching-done" onchange="app.completeStep('step-stretching', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Estiramiento completado</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FLOW: Hipopresivos -->
+          <div class="flow-step card" id="step-hipopresivos">
+            <div class="flow-step-header" onclick="app.toggleFlowStep('step-hipopresivos')">
+              <div>
+                <div class="flow-step-title">8. Hipopresivos Diarios</div>
+                <div class="flow-step-subtitle" id="hipopresivos-subtitle">8–10 min • Suaves</div>
+              </div>
+              <i data-lucide="chevron-down" class="accordion-arrow"></i>
+            </div>
+            <div class="flow-step-content">
+              <p style="font-size: 13px; margin-bottom: 12px;">Ideales para abdomen funcional y postura. Hazlos suave, sin forzar.</p>
+              <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button class="btn btn-accent btn-small" id="btn-start-hipopresivos">▶ Iniciar 10m</button>
+              </div>
+              <label class="check-item">
+                <input type="checkbox" id="check-hipopresivos-done" onchange="app.completeStep('step-hipopresivos', this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-weight: 500;">Hipopresivos finalizados</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Final Complete Workout Button -->
+          <div style="text-align: center; margin-top: 10px;">
+            <button class="btn btn-primary" id="btn-complete-workout" style="width: 100%;">
+              <i data-lucide="check-circle-2"></i> Terminar Entrenamiento
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= VIEW: RUTINAS ================= -->
+        <div id="view-rutinas" class="view-container">
+          <h2 style="margin-bottom: 6px;"><i data-lucide="book-open" style="color: var(--color-rose);"></i> Mis Rutinas</h2>
+          <p style="margin-bottom: 16px; font-size: 13px;">Visualiza y edita los ejercicios de tu plan de 5 días. Agrega enlaces de videos para verlos en vivo.</p>
+
+          <div id="routine-days-container">
+            <!-- Días de rutina inyectados dinámicamente -->
+          </div>
+        </div>
+
+        <!-- ================= VIEW: PROGRESO ================= -->
+        <div id="view-progreso" class="view-container">
+          <h2><i data-lucide="trending-up" style="color: var(--color-rose);"></i> Mi Progreso</h2>
+          
+          <!-- Body Weight Logger -->
+          <div class="card">
+            <h3>Registrar Peso Corporal</h3>
+            <p style="font-size: 12px; margin-bottom: 12px;">Monitorea tus cambios cada semana para ajustar alimentación.</p>
+            <div style="display: flex; gap: 10px;">
+              <input type="number" step="0.1" id="input-body-weight" placeholder="Peso en kg (ej: 58.5)" style="flex: 1;" />
+              <button class="btn btn-primary btn-small" onclick="app.logBodyWeight()">Guardar</button>
+            </div>
+          </div>
+
+          <!-- Weight Chart -->
+          <div class="card">
+            <h3>Evolución de Peso</h3>
+            <div class="chart-container">
+              <canvas id="weight-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Progressive Overload Rules -->
+          <div class="card">
+            <h3>Guía de Doble Progresión</h3>
+            <div style="font-size: 12px; line-height: 1.5; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+              <div>
+                <strong style="color: var(--color-rose);">Ejercicios Grandes (8-12 reps):</strong>
+                <p style="font-size: 12px; margin-top: 2px;">Mantén el peso hasta que logres hacer 12 repeticiones limpias en todas tus series efectivas. Luego, sube el peso (ej. +2.5kg a +5kg) y baja a 8 reps. Reconstruye desde ahí.</p>
+              </div>
+              <div style="margin-top: 6px;">
+                <strong style="color: var(--color-violet);">Ejercicios de Aislamiento (Rango Alto):</strong>
+                <p style="font-size: 12px; margin-top: 2px;">Primero sube las repeticiones con técnica perfecta hasta el límite del rango (ej. 25 reps en abducciones). Luego sube un poco el peso y vuelve a subir repeticiones.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historical Exercise Weight Records -->
+          <div class="card">
+            <h3>Historial de Fuerza</h3>
+            <p style="font-size: 12px; margin-bottom: 12px;">Selecciona un ejercicio para ver tu historial de cargas registradas:</p>
+            <select id="progress-exercise-selector" onchange="app.renderExerciseHistory()" style="margin-bottom: 12px;">
+              <!-- Cargado dinámicamente -->
+            </select>
+            <div id="exercise-history-table-container" style="max-height: 200px; overflow-y: auto;">
+              <!-- Tabla inyectada dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= VIEW: ALIMENTACION ================= -->
+        <div id="view-alimentacion" class="view-container">
+          <h2><i data-lucide="apple" style="color: var(--color-rose);"></i> Alimentación</h2>
+          
+          <!-- Macro targets calculation based on no-aggressive deficit -->
+          <div class="card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(20, 27, 45, 0.6) 100%); border-color: rgba(6, 182, 212, 0.2);">
+            <h3>Objetivo de Hipertrofia</h3>
+            <p style="font-size: 12px; line-height: 1.4; margin-top: 4px;">Para construir glúteos y piernas proporcionales, evita déficits agresivos. Nutre tus entrenamientos con suficientes proteínas y carbohidratos.</p>
+          </div>
+
+          <!-- Calories & Macros Progress Summary -->
+          <div class="card">
+            <h3>Consumo de Hoy</h3>
+            <div class="nutrition-grid" style="margin-top: 12px;">
+              <div class="nutri-box">
+                <div class="nutri-box-title">Calorías</div>
+                <div class="nutri-box-val" id="nutri-cal">0</div>
+                <div class="nutri-box-target" id="target-cal">/ 1800 kcal</div>
+              </div>
+              <div class="nutri-box">
+                <div class="nutri-box-title">Proteína</div>
+                <div class="nutri-box-val" id="nutri-prot">0g</div>
+                <div class="nutri-box-target" id="target-prot">/ 120g</div>
+              </div>
+              <div class="nutri-box">
+                <div class="nutri-box-title">Carbos</div>
+                <div class="nutri-box-val" id="nutri-carb">0g</div>
+                <div class="nutri-box-target" id="target-carb">/ 200g</div>
+              </div>
+              <div class="nutri-box">
+                <div class="nutri-box-title">Grasa</div>
+                <div class="nutri-box-val" id="nutri-fat">0g</div>
+                <div class="nutri-box-target" id="target-fat">/ 55g</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Log Food Form -->
+          <div class="card">
+            <h3>Agregar Alimento</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+              <input type="text" id="food-desc" placeholder="Nombre del alimento/comida" />
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                <input type="number" id="food-cal" placeholder="Cal" />
+                <input type="number" id="food-prot" placeholder="Prot" />
+                <input type="number" id="food-carb" placeholder="Carb" />
+                <input type="number" id="food-fat" placeholder="Gras" />
+              </div>
+              <button class="btn btn-primary" onclick="app.addFoodEntry()">
+                <i data-lucide="plus"></i> Registrar Comida
+              </button>
+            </div>
+          </div>
+
+          <!-- Food List for Today -->
+          <div class="card">
+            <h3>Comidas de Hoy</h3>
+            <div id="food-entries-list" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+              <!-- Registros inyectados dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Water Tracker -->
+          <div class="card">
+            <h3>Rastreador de Agua</h3>
+            <p style="font-size: 12px; margin-bottom: 10px; text-align: center;" id="water-text">Vasos de agua de hoy: 0 / 8 (0.0 L / 2.0 L)</p>
+            <div class="water-tracker-container">
+              <div class="water-glasses-row" id="water-glasses-row">
+                <!-- 8 glass icons generated dynamically -->
+              </div>
+              <button class="btn btn-secondary btn-small" onclick="app.resetWaterTracker()">Reiniciar Agua</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= VIEW: CICLO MENSTRUAL ================= -->
+        <div id="view-ciclo" class="view-container">
+          <h2><i data-lucide="calendar" style="color: var(--color-rose);"></i> Ciclo Menstrual</h2>
+          
+          <!-- Period Start Logger -->
+          <div class="card">
+            <h3>Registrar Periodo</h3>
+            <p style="font-size: 12px; margin-bottom: 12px;">Registra el inicio de tu sangrado menstrual. Como eres irregular, puedes forzar y ajustar tu fase en cualquier momento.</p>
+            <div style="display: flex; gap: 8px; flex-direction: column;">
+              <div style="display: flex; gap: 10px;">
+                <input type="date" id="input-period-date" style="flex: 1;" />
+                <button class="btn btn-primary btn-small" onclick="app.logPeriodStart()">Registrar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Cycle Phase Override -->
+          <div class="card" style="border-color: rgba(168, 85, 247, 0.3);">
+            <h3 style="color: var(--color-violet);">Ajuste Manual de Fase (Irregular)</h3>
+            <p style="font-size: 12px; margin-bottom: 12px; margin-top: 4px;">Si tu ciclo se retrasa o sientes síntomas diferentes, ajusta tu fase actual para adaptar tus consejos de entreno:</p>
+            <select id="select-manual-phase" onchange="app.manualPhaseChange(this.value)" style="margin-bottom: 8px;">
+              <option value="menstrual">Fase Menstrual (Cólicos, baja fuerza)</option>
+              <option value="folicular">Fase Folicular (Energía máxima, ideal para marcas)</option>
+              <option value="ovulacion">Fase Ovulatoria (Buena fuerza, energía alta)</option>
+              <option value="lutea">Fase Lútea (Retención, fatiga leve, consistencia)</option>
+            </select>
+          </div>
+
+          <!-- Symptoms Logger -->
+          <div class="card">
+            <h3>Síntomas de Hoy</h3>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Cólicos / Dolor</span>
+                <select id="symptom-cramps" style="width: 120px;">
+                  <option value="ninguno">Ninguno</option>
+                  <option value="leve">Leve</option>
+                  <option value="moderado">Moderado</option>
+                  <option value="fuerte">Fuerte</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Fatiga / Energía</span>
+                <select id="symptom-fatigue" style="width: 120px;">
+                  <option value="normal">Normal</option>
+                  <option value="baja">Baja Energía</option>
+                  <option value="alta">Alta Energía</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Fuerza en Gimnasio</span>
+                <select id="symptom-strength" style="width: 120px;">
+                  <option value="excelente">Excelente</option>
+                  <option value="normal">Normal</option>
+                  <option value="debil">Débil</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Retención / Hinchazón</span>
+                <select id="symptom-bloating" style="width: 120px;">
+                  <option value="ninguna">Ninguna</option>
+                  <option value="leve">Leve</option>
+                  <option value="alta">Alta</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary" onclick="app.saveSymptoms()">Guardar Síntomas</button>
+            </div>
+          </div>
+
+          <!-- Logs History List -->
+          <div class="card">
+            <h3>Historial de Periodos</h3>
+            <div class="cycle-logs-list" id="period-history-list">
+              <!-- Lista inyectada dinámicamente -->
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ================= COMPONENT: FLOATING REST TIMER ================= -->
+      <div id="floating-timer">
+        <div class="timer-header">
+          <span style="font-size: 13px; font-weight: 700; color: var(--color-lavender); display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="timer" style="width: 16px; height: 16px;"></i> Descanso
+          </span>
+          <button onclick="app.closeTimer()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+          </button>
+        </div>
+        <div class="timer-body">
+          <div class="timer-digits" id="timer-digits">02:00</div>
+          <div class="timer-controls">
+            <button class="btn btn-secondary btn-small" id="btn-timer-pause" onclick="app.toggleTimerPause()">Pausar</button>
+            <button class="btn btn-secondary btn-small" onclick="app.addTimerTime(30)">+30s</button>
+            <button class="btn btn-lavender btn-small" onclick="app.resetTimer()">Reiniciar</button>
+          </div>
+        </div>
+        <!-- Unilateral rest option -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label class="timer-unilateral-toggle">
+            <input type="checkbox" id="timer-unilateral-checkbox" onchange="app.toggleUnilateralRest(this.checked)" style="display:none;" />
+            <div class="custom-checkbox" style="width: 16px; height: 16px; border-radius: 4px;"></div>
+            <span>Descanso Unilateral (Corto)</span>
+          </label>
+          <span id="unilateral-label" style="font-size: 11px; color: var(--text-muted);">Completo: 90s</span>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: VIDEO MODAL PLAYER ================= -->
+      <div id="video-modal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="video-modal-title" style="font-size: 15px; font-weight: 700;">Técnica del Ejercicio</h3>
+            <button class="modal-close-btn" onclick="app.closeVideoModal()">&times;</button>
+          </div>
+          <div class="video-container-iframe" id="video-modal-player-container">
+            <!-- iframe YouTube o video HTML5 se inyecta aquí -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: EXERCISE EDITOR OVERLAY ================= -->
+      <div id="edit-exercise-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3>Editar Ejercicio</h3>
+            <button class="modal-close-btn" onclick="app.closeEditModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Nombre</label>
+              <input type="text" id="edit-ex-name" />
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Series</label>
+                <input type="number" id="edit-ex-sets" />
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Rango de Reps</label>
+                <input type="text" id="edit-ex-reps" placeholder="8–10" />
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Descanso (segundos)</label>
+              <input type="number" id="edit-ex-rest" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Claves Técnicas</label>
+              <textarea id="edit-ex-keys" rows="3"></textarea>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Enlace de Video (YouTube)</label>
+              <input type="text" id="edit-ex-video" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-secondary" onclick="app.closeEditModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveEditedExercise()" style="flex:1;">Guardar Cambios</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confetti and Success splash screen container -->
+      <div id="celebration-overlay"></div>
+
+      <!-- ================= BOTTOM NAVIGATION ================= -->
+      <nav id="bottom-nav">
+        <a id="nav-tab-hoy" class="nav-item active" onclick="app.switchTab('hoy', this)">
+          <i data-lucide="dumbbell"></i>
+          <span>Hoy</span>
+        </a>
+        <a id="nav-tab-rutinas" class="nav-item" onclick="app.switchTab('rutinas', this)">
+          <i data-lucide="book-open"></i>
+          <span>Rutinas</span>
+        </a>
+        <a id="nav-tab-progreso" class="nav-item" onclick="app.switchTab('progreso', this)">
+          <i data-lucide="trending-up"></i>
+          <span>Progreso</span>
+        </a>
+        <a id="nav-tab-alimentacion" class="nav-item" onclick="app.switchTab('alimentacion', this)">
+          <i data-lucide="apple"></i>
+          <span>Comida</span>
+        </a>
+        <a id="nav-tab-ciclo" class="nav-item" onclick="app.switchTab('ciclo', this)">
+          <i data-lucide="calendar"></i>
+          <span>Ciclo</span>
+        </a>
+      </nav>
+
+    </div><!-- /#app-wrapper -->
+
+    <!-- Scripts -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
