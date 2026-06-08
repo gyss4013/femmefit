@@ -933,7 +933,9 @@ class FemmeFitApp {
 
     // Show Rest Timer floating drawer
     const drawer = document.getElementById('floating-timer');
-    drawer.classList.add('show');
+    const appWrapper = document.getElementById('app-wrapper');
+    if (drawer) drawer.classList.add('show');
+    if (appWrapper) appWrapper.classList.add('timer-active');
 
     // Set title
     const titleEl = document.getElementById('timer-title-text');
@@ -1003,7 +1005,9 @@ class FemmeFitApp {
   closeTimer() {
     if (this.timerInterval) clearInterval(this.timerInterval);
     const drawer = document.getElementById('floating-timer');
-    drawer.classList.remove('show');
+    const appWrapper = document.getElementById('app-wrapper');
+    if (drawer) drawer.classList.remove('show');
+    if (appWrapper) appWrapper.classList.remove('timer-active');
   }
 
   updateTimerDisplay() {
