@@ -756,7 +756,7 @@ select option {
 .cycle-phase-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 12px;
   gap: 8px;
 }
@@ -769,18 +769,58 @@ select option {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #fff;
-  white-space: nowrap;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .cycle-phase-badge.menstrual { background: var(--phase-menstrual); box-shadow: 0 2px 8px rgba(190, 24, 93, 0.35); }
 .cycle-phase-badge.folicular { background: var(--phase-folicular); box-shadow: 0 2px 8px rgba(168, 85, 247, 0.35); }
 .cycle-phase-badge.ovulacion { background: var(--phase-ovulacion); box-shadow: 0 2px 8px rgba(236, 72, 153, 0.35); }
 .cycle-phase-badge.lutea     { background: var(--phase-lutea);     box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35); }
+.cycle-phase-badge.symptom-reduce { background: var(--phase-menstrual); box-shadow: 0 2px 8px rgba(190, 24, 93, 0.35); }
+.cycle-phase-badge.symptom-adjust { background: var(--phase-lutea); box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35); }
+.cycle-phase-badge.symptom-push { background: var(--phase-ovulacion); box-shadow: 0 2px 8px rgba(236, 72, 153, 0.35); }
+.cycle-phase-badge.symptom-normal { background: var(--phase-folicular); box-shadow: 0 2px 8px rgba(168, 85, 247, 0.35); }
+
+.cycle-phase-header .coach-title {
+  flex: 0 0 auto;
+}
+
+.cycle-phase-header .cycle-phase-badge {
+  flex: 1 1 150px;
+}
 
 .coach-advice-text {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-primary);
+}
+
+.symptom-recommendation-card {
+  padding: 12px;
+  border: 1px solid rgba(168, 85, 247, 0.24);
+  border-left: 4px solid var(--phase-folicular);
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.symptom-recommendation-card.symptom-reduce { border-left-color: var(--phase-menstrual); }
+.symptom-recommendation-card.symptom-adjust { border-left-color: var(--phase-lutea); }
+.symptom-recommendation-card.symptom-push { border-left-color: var(--phase-ovulacion); }
+.symptom-recommendation-card.symptom-normal { border-left-color: var(--phase-folicular); }
+
+.symptom-recommendation-title {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.symptom-recommendation-card p {
+  margin: 0;
+  font-size: 12px;
 }
 
 /* ─────────────────────────────────────────

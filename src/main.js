@@ -157,7 +157,10 @@ class FemmeFitApp {
 
   getTodayDateString() {
     const d = new Date();
-    return d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   init() {
@@ -276,160 +279,65 @@ class FemmeFitApp {
     }
   }
 
-  // CYCLE CALCULATIONS & INTERFACE
-  getCycleMetrics() {
-    const logs = this.state.periodLogs || [];
-    if (logs.length === 0) {
-      return {
-        avgCycleLength: 28,
-        avgDuration: 5,
-        isCalculated: false,
-        message: 'Registra al menos 2 periodos para calcular tus métricas reales.'
-      };
-    }
-
-    // Sort logs oldest to newest by startDate
-    const sorted = [...logs].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-
-    // Calculate average duration of bleeding
-    let totalDuration = 0;
-    sorted.forEach(p => {
-      const start = new Date(p.startDate);
-      const end = new Date(p.endDate || p.startDate);
-      const diffTime = end - start;
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      totalDuration += diffDays > 0 ? diffDays : 5;
-    });
-    const avgDuration = Math.round(totalDuration / sorted.length);
-
-    // Calculate average cycle length (days between consecutive start dates)
-    let avgCycleLength = this.state.cycleLength || 28;
-    let isCalculated = false;
-    let message = 'Registra al menos 2 periodos para calcular la duración de tu ciclo.';
-
-    if (sorted.length >= 2) {
-      let totalCycleDays = 0;
-      let intervalsCount = 0;
-      for (let i = 0; i < sorted.length - 1; i++) {
-        const startCurrent = new Date(sorted[i].startDate);
-        const startNext = new Date(sorted[i + 1].startDate);
-        const diffTime = startNext - startCurrent;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 0 && diffDays < 100) { // filter out massive gaps/outliers
-          totalCycleDays += diffDays;
-          intervalsCount++;
-        }
-      }
-      if (intervalsCount > 0) {
-        avgCycleLength = Math.round(totalCycleDays / intervalsCount);
-        isCalculated = true;
-        
-        // Determine variability/irregularity
-        let varianceSum = 0;
-        for (let i = 0; i < sorted.length - 1; i++) {
-          const startCurrent = new Date(sorted[i].startDate);
-          const startNext = new Date(sorted[i + 1].startDate);
-          const diffDays = Math.floor((startNext - startCurrent) / (1000 * 60 * 60 * 24));
-          if (diffDays > 0 && diffDays < 100) {
-            varianceSum += Math.abs(diffDays - avgCycleLength);
-          }
-        }
-        const avgDeviation = varianceSum / intervalsCount;
-        if (avgDeviation > 4) {
-          message = `Ciclo irregular (variación ±${Math.round(avgDeviation)} días). Ajusta tu fase manualmente si es necesario.`;
-        } else {
-          message = `Ciclo regular (variación ±${Math.round(avgDeviation)} días).`;
-        }
-      }
-    }
-
-    return {
-      avgCycleLength,
-      avgDuration,
-      isCalculated,
-      message
+  getTodaySymptoms() {
+    const todayStr = this.getTodayDateString();
+    return this.state.cycleSymptoms[todayStr] || {
+      cramps: 'ninguno',
+      fatigue: 'normal',
+      strength: 'normal',
+      bloating: 'ninguna'
     };
   }
 
-  calculateMenstrualCycle() {
-    const today = new Date(this.getTodayDateString());
-    
-    // Check for manual override first
-    if (this.state.manualCyclePhase && this.state.manualCyclePhaseDate) {
-      const overrideDate = new Date(this.state.manualCyclePhaseDate);
-      const diffTime = Math.abs(today - overrideDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      // Override is valid for 7 days or until next period log
-      if (diffDays <= 7) {
-        return {
-          phase: this.state.manualCyclePhase,
-          day: 'Ajuste Manual',
-          isOverridden: true
-        };
-      } else {
-        // Clear expired override
-        this.state.manualCyclePhase = null;
-        this.state.manualCyclePhaseDate = null;
-        this.saveState();
-      }
-    }
+  getSymptomRecommendation(symptoms = this.getTodaySymptoms()) {
+    const hasStrongCramps = symptoms.cramps === 'fuerte';
+    const hasModerateCramps = symptoms.cramps === 'moderado';
+    const hasLowEnergy = symptoms.fatigue === 'baja';
+    const hasWeakStrength = symptoms.strength === 'debil';
+    const hasHighBloating = symptoms.bloating === 'alta';
+    const feelsGreat = symptoms.fatigue === 'alta' && symptoms.strength === 'excelente' && symptoms.cramps === 'ninguno';
 
-    const logs = this.state.periodLogs || [];
-    if (logs.length === 0) {
+    if (hasStrongCramps || (hasLowEnergy && hasWeakStrength)) {
       return {
-        phase: 'folicular',
-        day: '?',
-        isOverridden: false,
-        note: 'Registra tu periodo para sincronizar con precisión.'
+        level: 'reduce',
+        badge: 'Bajar intensidad',
+        header: 'Día suave',
+        border: 'var(--phase-menstrual)',
+        advice: '<strong>Hoy conviene bajarle.</strong> Reduce cargas a un 60-70%, evita buscar récords y prioriza técnica, movilidad, caminata suave o hipopresivos. Si el dolor es fuerte, está bien hacer solo recuperación.'
       };
     }
 
-    // Get the most recent period start date
-    const sortedPeriods = [...logs].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-    const lastPeriodStart = new Date(sortedPeriods[0].startDate);
-    
-    // Calculate difference in days
-    const diffTime = today - lastPeriodStart;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      // Future logged date
-      return { phase: 'folicular', day: '?', isOverridden: false };
+    if (hasModerateCramps || hasLowEnergy || hasWeakStrength || hasHighBloating) {
+      return {
+        level: 'adjust',
+        badge: 'Ajustar entrenamiento',
+        header: 'Con control',
+        border: 'var(--phase-lutea)',
+        advice: '<strong>Haz la rutina, pero sin forzar.</strong> Mantén la técnica limpia, baja 5-15% la carga si algo se siente pesado y deja 1-2 repeticiones en reserva. El cardio debe sentirse cómodo, no castigador.'
+      };
     }
 
-    // Get dynamic metrics
-    const metrics = this.getCycleMetrics();
-    const cycleLength = metrics.avgCycleLength;
-    const periodDuration = metrics.avgDuration;
-    
-    const currentDay = (diffDays % cycleLength) + 1;
-
-    // Predict phases based on dynamic metrics
-    const ovulationDay = cycleLength - 14;
-    const ovulationStart = Math.max(periodDuration + 1, ovulationDay - 2);
-    const ovulationEnd = ovulationDay + 1;
-
-    let phase = 'folicular';
-    if (currentDay <= periodDuration) {
-      phase = 'menstrual';
-    } else if (currentDay > periodDuration && currentDay < ovulationStart) {
-      phase = 'folicular';
-    } else if (currentDay >= ovulationStart && currentDay <= ovulationEnd) {
-      phase = 'ovulacion';
-    } else {
-      phase = 'lutea';
+    if (feelsGreat) {
+      return {
+        level: 'push',
+        badge: 'Buen día para progresar',
+        header: 'Progresar',
+        border: 'var(--phase-ovulacion)',
+        advice: '<strong>Hoy puedes empujar progreso.</strong> Si la técnica está sólida, intenta completar el rango alto de repeticiones o subir un poco la carga en los ejercicios principales.'
+      };
     }
 
     return {
-      phase,
-      day: currentDay,
-      isOverridden: false
+      level: 'normal',
+      badge: 'Entreno normal',
+      header: 'Normal',
+      border: 'var(--phase-folicular)',
+      advice: '<strong>Hoy sigue la rutina normal.</strong> Trabaja con buena técnica, registra tus series y ajusta solo si aparece dolor, fatiga fuerte o una caída clara de fuerza.'
     };
   }
 
   updateCoachWidget() {
-    const cycle = this.calculateMenstrualCycle();
+    const recommendation = this.getSymptomRecommendation();
     const widget = document.getElementById('today-coach-widget');
     const phaseBadge = document.getElementById('today-coach-phase');
     const adviceText = document.getElementById('today-coach-text');
@@ -437,50 +345,16 @@ class FemmeFitApp {
 
     if (!widget || !phaseBadge || !adviceText) return;
 
-    // Remove old classes
-    phaseBadge.className = 'cycle-phase-badge';
-    phaseBadge.classList.add(cycle.phase);
-    
-    // Header Badge update
+    phaseBadge.className = `cycle-phase-badge symptom-${recommendation.level}`;
+    phaseBadge.innerText = recommendation.badge;
+    adviceText.innerHTML = recommendation.advice;
+    widget.style.borderLeft = `4px solid ${recommendation.border}`;
+
     if (headerBadge) {
       headerBadge.style.display = 'inline-block';
-      headerBadge.className = 'cycle-phase-badge ' + cycle.phase;
-      headerBadge.innerText = this.capitalize(cycle.phase);
+      headerBadge.className = `cycle-phase-badge symptom-${recommendation.level}`;
+      headerBadge.innerText = recommendation.header;
     }
-
-    // Set Text according to phase
-    let phaseName = '';
-    let advice = '';
-
-    switch (cycle.phase) {
-      case 'menstrual':
-        phaseName = `Fase Menstrual (Día ${cycle.day})`;
-        advice = '🩸 **Hormonas bajas, menor energía.** Prioriza la técnica de cargas. Si sientes cólicos fuertes o mucha fatiga, baja el peso a un 70-80% o haz solo movilidad/hipopresivos. Mantén el agua alta.';
-        widget.style.borderLeft = '4px solid var(--phase-menstrual)';
-        break;
-      case 'folicular':
-        phaseName = `Fase Folicular (Día ${cycle.day})`;
-        advice = '⚡ **Estrógenos en aumento, energía a tope.** Es el momento óptimo para aplicar la doble sobrecarga progresiva. Intenta completar el rango superior de repeticiones (ej. 12 reps) y subir peso en ejercicios pesados.';
-        widget.style.borderLeft = '4px solid var(--phase-folicular)';
-        break;
-      case 'ovulacion':
-        phaseName = `Fase Ovulatoria (Día ${cycle.day})`;
-        advice = '🔥 **Fuerza máxima, pero tendones más laxos.** Gran momento de rendimiento. Calienta concienzudamente tus series de aproximación para evitar lesiones articulares.';
-        widget.style.borderLeft = '4px solid var(--phase-ovulacion)';
-        break;
-      case 'lutea':
-        phaseName = `Fase Lútea (Día ${cycle.day})`;
-        advice = '🌡️ **Progesterona alta, retención de líquidos.** Tu temperatura corporal sube y el cardio puede sentirse más difícil. No te exijas batir récords si te sientes fatigada; prioriza la consistencia y el control excéntrico.';
-        widget.style.borderLeft = '4px solid var(--phase-lutea)';
-        break;
-    }
-
-    if (cycle.isOverridden) {
-      phaseName += ' (Ajuste Manual)';
-    }
-
-    phaseBadge.innerText = phaseName;
-    adviceText.innerHTML = advice;
   }
 
   // RENDER WORKOUT FLOW (TAB HOY)
@@ -2104,136 +1978,56 @@ class FemmeFitApp {
     this.renderNutritionTab();
   }
 
-  // MENSTRUAL CYCLE LOGGING TAB
   renderCycleTab() {
-    // Update metric cards
-    const metrics = this.getCycleMetrics();
-    const cycleMetricEl = document.getElementById('metric-avg-cycle');
-    const durationMetricEl = document.getElementById('metric-avg-duration');
-    const statusMetricEl = document.getElementById('metric-cycle-status');
-
-    if (cycleMetricEl) cycleMetricEl.innerText = `${metrics.avgCycleLength} días`;
-    if (durationMetricEl) durationMetricEl.innerText = `${metrics.avgDuration} días`;
-    if (statusMetricEl) statusMetricEl.innerText = metrics.message;
-
-    // Populate Period logs list
-    const container = document.getElementById('period-history-list');
-    if (!container) return;
-
-    if (!this.state.periodLogs || this.state.periodLogs.length === 0) {
-      container.innerHTML = '<p style="font-size:12px; color:var(--text-muted); text-align:center;">No hay registros cargados.</p>';
-    } else {
-      const sorted = [...this.state.periodLogs].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-      let html = '';
-      sorted.forEach((log) => {
-        const partsStart = log.startDate.split('-');
-        const formattedStart = `${partsStart[2]}/${partsStart[1]}/${partsStart[0]}`;
-        
-        const partsEnd = log.endDate.split('-');
-        const formattedEnd = `${partsEnd[2]}/${partsEnd[1]}/${partsEnd[0]}`;
-
-        const start = new Date(log.startDate);
-        const end = new Date(log.endDate);
-        const diffTime = end - start;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-        html += `
-          <div class="cycle-log-item">
-            <span>Del <strong>${formattedStart}</strong> al <strong>${formattedEnd}</strong> (${diffDays} días)</span>
-            <button onclick="app.deletePeriodLog('${log.id}')" style="background:none; border:none; color:var(--color-rose); cursor:pointer;">
-              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-            </button>
-          </div>
-        `;
-      });
-      container.innerHTML = html;
-      lucide.createIcons();
-    }
-
-    // Restore today symptoms visual values if logged
     const todayStr = this.getTodayDateString();
-    const symptoms = this.state.cycleSymptoms[todayStr];
-    if (symptoms) {
-      document.getElementById('symptom-cramps').value = symptoms.cramps || 'ninguno';
-      document.getElementById('symptom-fatigue').value = symptoms.fatigue || 'normal';
-      document.getElementById('symptom-strength').value = symptoms.strength || 'normal';
-      document.getElementById('symptom-bloating').value = symptoms.bloating || 'ninguna';
+    const todayLabel = document.getElementById('symptoms-today-label');
+    const symptoms = this.getTodaySymptoms();
+
+    if (todayLabel) {
+      const [year, month, day] = todayStr.split('-');
+      todayLabel.innerText = `Registro de hoy: ${day}/${month}/${year}`;
     }
 
-    // Set select selector override value matching current state
-    const cycle = this.calculateMenstrualCycle();
-    document.getElementById('select-manual-phase').value = cycle.phase;
-  }
+    const fields = {
+      'symptom-cramps': symptoms.cramps || 'ninguno',
+      'symptom-fatigue': symptoms.fatigue || 'normal',
+      'symptom-strength': symptoms.strength || 'normal',
+      'symptom-bloating': symptoms.bloating || 'ninguna'
+    };
 
-  logPeriodRange() {
-    const startInput = document.getElementById('input-period-start');
-    const endInput = document.getElementById('input-period-end');
-    const startVal = startInput.value;
-    const endVal = endInput.value;
-
-    if (!startVal || !endVal) {
-      alert("Por favor selecciona una fecha de inicio y de fin válidas.");
-      return;
-    }
-
-    const start = new Date(startVal);
-    const end = new Date(endVal);
-
-    if (end < start) {
-      alert("La fecha de fin no puede ser anterior a la fecha de inicio.");
-      return;
-    }
-
-    // Add only if not duplicated start date
-    const duplicated = this.state.periodLogs.some(p => p.startDate === startVal);
-    if (duplicated) {
-      alert("Ya existe un periodo registrado que inicia en esta fecha.");
-      return;
-    }
-
-    this.state.periodLogs.push({
-      id: String(Date.now() + Math.random()),
-      startDate: startVal,
-      endDate: endVal
+    Object.entries(fields).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value;
     });
 
-    // Reset manual overrides once period is logged
-    this.state.manualCyclePhase = null;
-    this.state.manualCyclePhaseDate = null;
-    
-    this.saveState();
-    this.renderCycleTab();
-    this.updateCoachWidget();
-
-    // Clear inputs
-    startInput.value = '';
-    endInput.value = '';
-
-    alert("Periodo registrado con éxito.");
+    this.renderSymptomRecommendationPreview();
   }
 
-  deletePeriodLog(id) {
-    this.state.periodLogs = this.state.periodLogs.filter(p => String(p.id) !== String(id));
-    this.saveState();
-    this.renderCycleTab();
-    this.updateCoachWidget();
-  }
+  renderSymptomRecommendationPreview() {
+    const preview = document.getElementById('symptom-recommendation-preview');
+    if (!preview) return;
 
-  manualPhaseChange(phase) {
-    const todayStr = this.getTodayDateString();
-    this.state.manualCyclePhase = phase;
-    this.state.manualCyclePhaseDate = todayStr;
-    this.saveState();
-    this.updateCoachWidget();
-    alert(`Fase menstrual configurada manualmente como: ${this.capitalize(phase)}. Durará 7 días.`);
+    const symptoms = {
+      cramps: document.getElementById('symptom-cramps')?.value || 'ninguno',
+      fatigue: document.getElementById('symptom-fatigue')?.value || 'normal',
+      strength: document.getElementById('symptom-strength')?.value || 'normal',
+      bloating: document.getElementById('symptom-bloating')?.value || 'ninguna'
+    };
+    const recommendation = this.getSymptomRecommendation(symptoms);
+
+    preview.className = `symptom-recommendation-card symptom-${recommendation.level}`;
+    preview.innerHTML = `
+      <div class="symptom-recommendation-title">${recommendation.badge}</div>
+      <p>${recommendation.advice}</p>
+    `;
   }
 
   saveSymptoms() {
     const todayStr = this.getTodayDateString();
-    const cramps = document.getElementById('symptom-cramps').value;
-    const fatigue = document.getElementById('symptom-fatigue').value;
-    const strength = document.getElementById('symptom-strength').value;
-    const bloating = document.getElementById('symptom-bloating').value;
+    const cramps = document.getElementById('symptom-cramps')?.value || 'ninguno';
+    const fatigue = document.getElementById('symptom-fatigue')?.value || 'normal';
+    const strength = document.getElementById('symptom-strength')?.value || 'normal';
+    const bloating = document.getElementById('symptom-bloating')?.value || 'ninguna';
 
     this.state.cycleSymptoms[todayStr] = {
       cramps,
@@ -2243,6 +2037,8 @@ class FemmeFitApp {
     };
 
     this.saveState();
+    this.renderSymptomRecommendationPreview();
+    this.updateCoachWidget();
     alert("Síntomas guardados correctamente.");
   }
 
