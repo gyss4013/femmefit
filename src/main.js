@@ -1,7 +1,7 @@
 import Chart from 'chart.js/auto';
 import { INITIAL_ROUTINE } from './routine-data.js';
 import { auth, db, googleProvider } from './firebase.js';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithRedirect, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Core State Manager
@@ -1517,12 +1517,11 @@ window.signInWithGoogle = async () => {
   const btn = document.getElementById('btn-google-signin');
   if (btn) { btn.disabled = true; btn.innerText = 'Iniciando sesión...'; }
   try {
-    await signInWithPopup(auth, googleProvider);
-    // onAuthStateChanged will handle the rest
+    await signInWithRedirect(auth, googleProvider);
   } catch (e) {
     console.error('Sign-in error:', e);
     if (btn) { btn.disabled = false; btn.innerHTML = 'Continuar con Google'; }
-    alert('Error al iniciar sesión. Asegúrate de que las ventanas emergentes estén permitidas.');
+    alert('Error al iniciar sesión. Por favor intenta de nuevo.');
   }
 };
 
