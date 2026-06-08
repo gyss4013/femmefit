@@ -59,6 +59,24 @@ class FemmeFitApp {
         if (!parsed.periodLogs) parsed.periodLogs = [];
         if (!parsed.cycleSymptoms) parsed.cycleSymptoms = {};
         if (!parsed.currentWorkoutLogs) parsed.currentWorkoutLogs = {};
+
+        // Upgrade simple date logs to ranges
+        parsed.periodLogs = parsed.periodLogs.map(p => {
+          if (p.date && !p.startDate) {
+            const start = p.date;
+            const startDateObj = new Date(start);
+            startDateObj.setDate(startDateObj.getDate() + 4); // assume default 5 days duration
+            const end = startDateObj.toISOString().split('T')[0];
+            return {
+              id: p.id || Date.now() + Math.random(),
+              startDate: start,
+              endDate: end
+            };
+          }
+          if (!p.id) p.id = Date.now() + Math.random();
+          return p;
+        });
+
         return parsed;
       } catch (e) {
         console.error("Error parsing saved state, resetting...", e);
@@ -97,6 +115,25 @@ class FemmeFitApp {
         const cloudState = JSON.parse(snap.data().data);
         // Cloud takes priority; fill any missing keys from local defaults
         this.state = { ...this.state, ...cloudState };
+
+        // Upgrade simple date logs to ranges
+        if (this.state.periodLogs) {
+          this.state.periodLogs = this.state.periodLogs.map(p => {
+            if (p.date && !p.startDate) {
+              const start = p.date;
+              const startDateObj = new Date(start);
+              startDateObj.setDate(startDateObj.getDate() + 4);
+              const end = startDateObj.toISOString().split('T')[0];
+              return {
+                id: p.id || Date.now() + Math.random(),
+                startDate: start,
+                endDate: end
+              };
+            }
+            if (!p.id) p.id = Date.now() + Math.random();
+            return p;
+          });
+        }
       } else {
         // First login ever — upload current local data to cloud
         await this.syncToFirestore();
@@ -222,6 +259,80 @@ class FemmeFitApp {
   }
 
   // CYCLE CALCULATIONS & INTERFACE
+  getCycleMetrics() {
+    const logs = this.state.periodLogs || [];
+    if (logs.length === 0) {
+      return {
+        avgCycleLength: 28,
+        avgDuration: 5,
+        isCalculated: false,
+        message: 'Registra al menos 2 periodos para calcular tus métricas reales.'
+      };
+    }
+
+    // Sort logs oldest to newest by startDate
+    const sorted = [...logs].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    // Calculate average duration of bleeding
+    let totalDuration = 0;
+    sorted.forEach(p => {
+      const start = new Date(p.startDate);
+      const end = new Date(p.endDate || p.startDate);
+      const diffTime = end - start;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      totalDuration += diffDays > 0 ? diffDays : 5;
+    });
+    const avgDuration = Math.round(totalDuration / sorted.length);
+
+    // Calculate average cycle length (days between consecutive start dates)
+    let avgCycleLength = this.state.cycleLength || 28;
+    let isCalculated = false;
+    let message = 'Registra al menos 2 periodos para calcular la duración de tu ciclo.';
+
+    if (sorted.length >= 2) {
+      let totalCycleDays = 0;
+      let intervalsCount = 0;
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const startCurrent = new Date(sorted[i].startDate);
+        const startNext = new Date(sorted[i + 1].startDate);
+        const diffTime = startNext - startCurrent;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 0 && diffDays < 100) { // filter out massive gaps/outliers
+          totalCycleDays += diffDays;
+          intervalsCount++;
+        }
+      }
+      if (intervalsCount > 0) {
+        avgCycleLength = Math.round(totalCycleDays / intervalsCount);
+        isCalculated = true;
+        
+        // Determine variability/irregularity
+        let varianceSum = 0;
+        for (let i = 0; i < sorted.length - 1; i++) {
+          const startCurrent = new Date(sorted[i].startDate);
+          const startNext = new Date(sorted[i + 1].startDate);
+          const diffDays = Math.floor((startNext - startCurrent) / (1000 * 60 * 60 * 24));
+          if (diffDays > 0 && diffDays < 100) {
+            varianceSum += Math.abs(diffDays - avgCycleLength);
+          }
+        }
+        const avgDeviation = varianceSum / intervalsCount;
+        if (avgDeviation > 4) {
+          message = `Ciclo irregular (variación ±${Math.round(avgDeviation)} días). Ajusta tu fase manualmente si es necesario.`;
+        } else {
+          message = `Ciclo regular (variación ±${Math.round(avgDeviation)} días).`;
+        }
+      }
+    }
+
+    return {
+      avgCycleLength,
+      avgDuration,
+      isCalculated,
+      message
+    };
+  }
+
   calculateMenstrualCycle() {
     const today = new Date(this.getTodayDateString());
     
@@ -246,7 +357,8 @@ class FemmeFitApp {
       }
     }
 
-    if (!this.state.periodLogs || this.state.periodLogs.length === 0) {
+    const logs = this.state.periodLogs || [];
+    if (logs.length === 0) {
       return {
         phase: 'folicular',
         day: '?',
@@ -256,11 +368,11 @@ class FemmeFitApp {
     }
 
     // Get the most recent period start date
-    const sortedPeriods = [...this.state.periodLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const lastPeriod = new Date(sortedPeriods[0].date);
+    const sortedPeriods = [...logs].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+    const lastPeriodStart = new Date(sortedPeriods[0].startDate);
     
     // Calculate difference in days
-    const diffTime = today - lastPeriod;
+    const diffTime = today - lastPeriodStart;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
@@ -268,16 +380,24 @@ class FemmeFitApp {
       return { phase: 'folicular', day: '?', isOverridden: false };
     }
 
-    // Irregular fallback logic using average cycle length
-    const cycleLength = this.state.cycleLength || 28;
+    // Get dynamic metrics
+    const metrics = this.getCycleMetrics();
+    const cycleLength = metrics.avgCycleLength;
+    const periodDuration = metrics.avgDuration;
+    
     const currentDay = (diffDays % cycleLength) + 1;
 
+    // Predict phases based on dynamic metrics
+    const ovulationDay = cycleLength - 14;
+    const ovulationStart = Math.max(periodDuration + 1, ovulationDay - 2);
+    const ovulationEnd = ovulationDay + 1;
+
     let phase = 'folicular';
-    if (currentDay <= 5) {
+    if (currentDay <= periodDuration) {
       phase = 'menstrual';
-    } else if (currentDay >= 6 && currentDay <= 12) {
+    } else if (currentDay > periodDuration && currentDay < ovulationStart) {
       phase = 'folicular';
-    } else if (currentDay >= 13 && currentDay <= 16) {
+    } else if (currentDay >= ovulationStart && currentDay <= ovulationEnd) {
       phase = 'ovulacion';
     } else {
       phase = 'lutea';
@@ -1375,6 +1495,16 @@ class FemmeFitApp {
 
   // MENSTRUAL CYCLE LOGGING TAB
   renderCycleTab() {
+    // Update metric cards
+    const metrics = this.getCycleMetrics();
+    const cycleMetricEl = document.getElementById('metric-avg-cycle');
+    const durationMetricEl = document.getElementById('metric-avg-duration');
+    const statusMetricEl = document.getElementById('metric-cycle-status');
+
+    if (cycleMetricEl) cycleMetricEl.innerText = `${metrics.avgCycleLength} días`;
+    if (durationMetricEl) durationMetricEl.innerText = `${metrics.avgDuration} días`;
+    if (statusMetricEl) statusMetricEl.innerText = metrics.message;
+
     // Populate Period logs list
     const container = document.getElementById('period-history-list');
     if (!container) return;
@@ -1382,15 +1512,24 @@ class FemmeFitApp {
     if (!this.state.periodLogs || this.state.periodLogs.length === 0) {
       container.innerHTML = '<p style="font-size:12px; color:var(--text-muted); text-align:center;">No hay registros cargados.</p>';
     } else {
-      const sorted = [...this.state.periodLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const sorted = [...this.state.periodLogs].sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
       let html = '';
-      sorted.forEach((log, idx) => {
-        const parts = log.date.split('-');
-        const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      sorted.forEach((log) => {
+        const partsStart = log.startDate.split('-');
+        const formattedStart = `${partsStart[2]}/${partsStart[1]}/${partsStart[0]}`;
+        
+        const partsEnd = log.endDate.split('-');
+        const formattedEnd = `${partsEnd[2]}/${partsEnd[1]}/${partsEnd[0]}`;
+
+        const start = new Date(log.startDate);
+        const end = new Date(log.endDate);
+        const diffTime = end - start;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
         html += `
           <div class="cycle-log-item">
-            <span>Periodo iniciado el: <strong>${formatted}</strong></span>
-            <button onclick="app.deletePeriodLog(${idx})" style="background:none; border:none; color:var(--color-rose); cursor:pointer;">
+            <span>Del <strong>${formattedStart}</strong> al <strong>${formattedEnd}</strong> (${diffDays} días)</span>
+            <button onclick="app.deletePeriodLog('${log.id}')" style="background:none; border:none; color:var(--color-rose); cursor:pointer;">
               <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
             </button>
           </div>
@@ -1415,32 +1554,55 @@ class FemmeFitApp {
     document.getElementById('select-manual-phase').value = cycle.phase;
   }
 
-  logPeriodStart() {
-    const input = document.getElementById('input-period-date');
-    const val = input.value;
+  logPeriodRange() {
+    const startInput = document.getElementById('input-period-start');
+    const endInput = document.getElementById('input-period-end');
+    const startVal = startInput.value;
+    const endVal = endInput.value;
 
-    if (!val) {
-      alert("Por favor selecciona una fecha válida.");
+    if (!startVal || !endVal) {
+      alert("Por favor selecciona una fecha de inicio y de fin válidas.");
       return;
     }
 
-    // Add only if not duplicated
-    const duplicated = this.state.periodLogs.some(p => p.date === val);
-    if (!duplicated) {
-      this.state.periodLogs.push({ date: val });
-      // Reset manual overrides once period is logged
-      this.state.manualCyclePhase = null;
-      this.state.manualCyclePhaseDate = null;
-      this.saveState();
+    const start = new Date(startVal);
+    const end = new Date(endVal);
+
+    if (end < start) {
+      alert("La fecha de fin no puede ser anterior a la fecha de inicio.");
+      return;
     }
 
+    // Add only if not duplicated start date
+    const duplicated = this.state.periodLogs.some(p => p.startDate === startVal);
+    if (duplicated) {
+      alert("Ya existe un periodo registrado que inicia en esta fecha.");
+      return;
+    }
+
+    this.state.periodLogs.push({
+      id: String(Date.now() + Math.random()),
+      startDate: startVal,
+      endDate: endVal
+    });
+
+    // Reset manual overrides once period is logged
+    this.state.manualCyclePhase = null;
+    this.state.manualCyclePhaseDate = null;
+    
+    this.saveState();
     this.renderCycleTab();
     this.updateCoachWidget();
+
+    // Clear inputs
+    startInput.value = '';
+    endInput.value = '';
+
     alert("Periodo registrado con éxito.");
   }
 
-  deletePeriodLog(index) {
-    this.state.periodLogs.splice(index, 1);
+  deletePeriodLog(id) {
+    this.state.periodLogs = this.state.periodLogs.filter(p => String(p.id) !== String(id));
     this.saveState();
     this.renderCycleTab();
     this.updateCoachWidget();

@@ -469,16 +469,43 @@
         <div id="view-ciclo" class="view-container">
           <h2><i data-lucide="calendar" style="color: var(--color-rose);"></i> Ciclo Menstrual</h2>
           
-          <!-- Period Start Logger -->
+          <!-- Period Range Logger -->
           <div class="card">
             <h3>Registrar Periodo</h3>
-            <p style="font-size: 12px; margin-bottom: 12px;">Registra el inicio de tu sangrado menstrual. Como eres irregular, puedes forzar y ajustar tu fase en cualquier momento.</p>
-            <div style="display: flex; gap: 8px; flex-direction: column;">
-              <div style="display: flex; gap: 10px;">
-                <input type="date" id="input-period-date" style="flex: 1;" />
-                <button class="btn btn-primary btn-small" onclick="app.logPeriodStart()">Registrar</button>
+            <p style="font-size: 12px; margin-bottom: 12px;">Registra la fecha de inicio y fin de tu sangrado menstrual para estimar la duración de tu ciclo.</p>
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Fecha de Inicio</label>
+                  <input type="date" id="input-period-start" style="width: 100%;" />
+                </div>
+                <div>
+                  <label style="font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Fecha de Fin</label>
+                  <input type="date" id="input-period-end" style="width: 100%;" />
+                </div>
+              </div>
+              <button class="btn btn-primary btn-small" onclick="app.logPeriodRange()" style="margin-top: 8px;">Registrar Periodo</button>
+            </div>
+          </div>
+
+          <!-- Estadísticas del Ciclo -->
+          <div class="card" style="border-color: rgba(232, 121, 168, 0.2); background: rgba(232, 121, 168, 0.02);">
+            <h3 style="color: var(--color-rose); display: flex; align-items: center; gap: 6px; font-size:14px; margin-top:0; margin-bottom:8px;">
+              <i data-lucide="activity" style="width: 16px; height: 16px;"></i> Tus Métricas (Irregularidad)
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; text-align: center;">
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; border: 1px solid var(--border-glass);">
+                <div style="font-size: 11px; color: var(--text-secondary);">Ciclo Promedio</div>
+                <div id="metric-avg-cycle" style="font-size: 18px; font-weight: 700; color: var(--color-lavender); margin-top: 4px;">-- días</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; border: 1px solid var(--border-glass);">
+                <div style="font-size: 11px; color: var(--text-secondary);">Duración Sangrado</div>
+                <div id="metric-avg-duration" style="font-size: 18px; font-weight: 700; color: var(--color-rose); margin-top: 4px;">-- días</div>
               </div>
             </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: center; margin-bottom:0;" id="metric-cycle-status">
+              Cargando estadísticas...
+            </p>
           </div>
 
           <!-- Manual Cycle Phase Override -->
