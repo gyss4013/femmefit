@@ -196,13 +196,31 @@ class FemmeFitApp {
     // Warmup Timer
     const btnWarmup = document.getElementById('btn-start-warmup');
     if (btnWarmup) {
-      btnWarmup.addEventListener('click', () => this.startPhaseTimer('warmup', 300, btnWarmup));
+      btnWarmup.addEventListener('click', () => {
+        const dayId = this.state.activeDay;
+        const dayData = this.state.routine.days.find(d => d.id === dayId);
+        let duration = 300; // 5 min
+        if (dayData && dayData.warmup && dayData.warmup.duration) {
+          const match = dayData.warmup.duration.match(/(\d+)/);
+          if (match) duration = parseInt(match[1]) * 60;
+        }
+        this.startTimer(duration, false, "Calentamiento General", "warmup");
+      });
     }
 
     // Cooldown Timer
     const btnCooldown = document.getElementById('btn-start-cooldown');
     if (btnCooldown) {
-      btnCooldown.addEventListener('click', () => this.startPhaseTimer('cooldown', 180, btnCooldown));
+      btnCooldown.addEventListener('click', () => {
+        const dayId = this.state.activeDay;
+        const dayData = this.state.routine.days.find(d => d.id === dayId);
+        let duration = 180; // 3 min
+        if (dayData && dayData.cooldown && dayData.cooldown.walk) {
+          const match = dayData.cooldown.walk.match(/(\d+)/);
+          if (match) duration = parseInt(match[1]) * 60;
+        }
+        this.startTimer(duration, false, "Vuelta a la Calma", "cooldown");
+      });
     }
 
     // Hipopresivos Timer
@@ -217,7 +235,7 @@ class FemmeFitApp {
           const match = durationStr.match(/(\d+)/);
           if (match) duration = parseInt(match[1]) * 60;
         }
-        this.startPhaseTimer('hipopresivos', duration, btnHipo);
+        this.startTimer(duration, false, "Hipopresivos Diarios", "hipopresivos");
       });
     }
 
@@ -509,16 +527,38 @@ class FemmeFitApp {
     checkWarmup.checked = !!this.state.completedSteps[todayStr]['step-warmup'];
     this.completeStepVisual('step-warmup', checkWarmup.checked);
 
+    // Warmup Video Button setup
+    const btnWarmupVideo = document.getElementById('btn-warmup-video');
+    if (btnWarmupVideo) {
+      if (dayData.warmup.video) {
+        btnWarmupVideo.style.display = 'inline-flex';
+        btnWarmupVideo.onclick = () => this.playVideo('Calentamiento General', dayData.warmup.video);
+      } else {
+        btnWarmupVideo.style.display = 'none';
+      }
+    }
+
     // Setup Movilidad
     const mobilityList = document.getElementById('mobility-exercises-list');
     mobilityList.innerHTML = '';
     dayData.mobility.exercises.forEach((ex, idx) => {
       const div = document.createElement('div');
       div.className = 'check-item';
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      
       div.innerHTML = `
-        <input type="checkbox" id="check-mob-${idx}" ${this.state.completedSteps[todayStr][`mob-${idx}`] ? 'checked' : ''} onchange="app.saveCheckState('mob-${idx}', this.checked)" />
-        <div class="custom-checkbox"></div>
-        <span>${ex.name} (${ex.reps})</span>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" id="check-mob-${idx}" ${this.state.completedSteps[todayStr][`mob-${idx}`] ? 'checked' : ''} onchange="app.saveCheckState('mob-${idx}', this.checked)" />
+          <div class="custom-checkbox"></div>
+          <span>${ex.name} (${ex.reps})</span>
+        </label>
+        ${ex.video ? `
+          <button class="btn btn-secondary btn-small" onclick="app.playVideo('${ex.name}', '${ex.video}')" style="padding: 2px 6px; font-size:11px; display:inline-flex; align-items:center; gap:2px; flex-shrink:0;">
+            <i data-lucide="video" style="width:12px; height:12px;"></i> Video
+          </button>
+        ` : ''}
       `;
       mobilityList.appendChild(div);
     });
@@ -526,7 +566,7 @@ class FemmeFitApp {
     checkMobility.checked = !!this.state.completedSteps[todayStr]['step-mobility'];
     this.completeStepVisual('step-mobility', checkMobility.checked);
 
-    // Setup Aproximación
+    // Setup Aproximación / Activación
     const stepApprox = document.getElementById('step-approximation');
     if (dayData.hasApproximation) {
       stepApprox.style.display = 'block';
@@ -534,6 +574,16 @@ class FemmeFitApp {
       const checkApprox = document.getElementById('check-approx-done');
       checkApprox.checked = !!this.state.completedSteps[todayStr]['step-approximation'];
       this.completeStepVisual('step-approximation', checkApprox.checked);
+      // Activation video button
+      const btnActivVideo = document.getElementById('btn-activation-video');
+      if (btnActivVideo) {
+        if (dayData.activationVideo) {
+          btnActivVideo.style.display = 'inline-flex';
+          btnActivVideo.onclick = () => this.playVideo('Activación / Aproximación', dayData.activationVideo);
+        } else {
+          btnActivVideo.style.display = 'none';
+        }
+      }
     } else {
       stepApprox.style.display = 'none';
     }
@@ -597,15 +647,17 @@ class FemmeFitApp {
         <div class="exercise-header-row">
           <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${ex.name}</h4>
           <div style="display:flex; gap: 8px;">
-            <button class="btn btn-secondary btn-small" style="padding: 4px 8px;" onclick="app.playVideo('${ex.name}', '${ex.video}')">
-              <i data-lucide="video" style="width: 12px; height: 12px;"></i> Video
-            </button>
+            ${ex.video ? `
+              <button class="btn btn-secondary btn-small" style="padding: 4px 8px;" onclick="app.playVideo('${ex.name}', '${ex.video}')">
+                <i data-lucide="video" style="width: 12px; height: 12px;"></i> Video
+              </button>
+            ` : ''}
             <span style="font-size: 11px; color: var(--color-rose); font-weight: 600; padding: 4px 8px; background: rgba(244, 63, 94, 0.08); border-radius: 6px;">
               ${ex.sets}x${ex.repsRange}
             </span>
           </div>
         </div>
-        <div class="exercise-keys-note">${ex.keys}</div>
+        <div class="exercise-keys-note">${ex.keys || 'Mantén técnica controlada.'}</div>
         <table class="set-log-table">
           <thead>
             <tr>
@@ -633,16 +685,23 @@ class FemmeFitApp {
     // Setup Cardio
     const cardioContent = document.getElementById('cardio-content-area');
     const isCardioCompleted = !!this.state.completedSteps[todayStr]['step-cardio'];
-    if (dayData.cardio) {
+    if (dayData.cardio && dayData.cardioInfo) {
       document.getElementById('cardio-subtitle').innerText = `${dayData.cardioInfo.duration} • ${dayData.cardioInfo.type}`;
       cardioContent.innerHTML = `
         <p style="font-size: 13px; margin-bottom: 12px; color: var(--text-secondary);">
           <strong style="color: var(--text-primary);">Intensidad:</strong> ${dayData.cardioInfo.intensity}. Mantenlo controlado.<br/>
           <em>El cardio es para salud y cintura controlada, no para quemarte.</em>
         </p>
-        <button class="btn btn-lavender btn-small btn-cardio-start" style="margin-bottom: 12px;" onclick="app.startCardioTimer('${dayData.cardioInfo.duration}')">
-          ▶ Iniciar Temporizador de Cardio (${dayData.cardioInfo.duration})
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+          <button class="btn btn-lavender btn-small btn-cardio-start" style="flex:1;" onclick="app.startCardioTimer('${dayData.cardioInfo.duration}')">
+            ▶ Iniciar Cardio (${dayData.cardioInfo.duration})
+          </button>
+          ${dayData.cardioInfo.video ? `
+            <button class="btn btn-secondary btn-small" onclick="app.playVideo('Cardio', '${dayData.cardioInfo.video}')" style="padding: 6px 8px; display:inline-flex; align-items:center; gap:4px;">
+              <i data-lucide="video" style="width: 14px; height: 14px;"></i> Video
+            </button>
+          ` : ''}
+        </div>
         <label class="check-item">
           <input type="checkbox" id="check-cardio-done" ${isCardioCompleted ? 'checked' : ''} onchange="app.completeStep('step-cardio', this.checked)" />
           <div class="custom-checkbox"></div>
@@ -663,26 +722,98 @@ class FemmeFitApp {
       this.completeStepVisual('step-cardio', isCardioCompleted);
     }
 
-    // Cooldown
+    // Cooldown Walk Setup
     const checkCooldown = document.getElementById('check-cooldown-done');
     checkCooldown.checked = !!this.state.completedSteps[todayStr]['step-cooldown'];
     this.completeStepVisual('step-cooldown', checkCooldown.checked);
+    
+    const btnCooldownVideo = document.getElementById('btn-cooldown-video');
+    if (btnCooldownVideo) {
+      if (dayData.cooldown.walkVideo) {
+        btnCooldownVideo.style.display = 'inline-flex';
+        btnCooldownVideo.onclick = () => this.playVideo('Vuelta a la Calma', dayData.cooldown.walkVideo);
+      } else {
+        btnCooldownVideo.style.display = 'none';
+      }
+    }
+    const coolText = document.getElementById('cooldown-text-desc');
+    if (coolText && dayData.cooldown.walk) {
+      coolText.innerText = dayData.cooldown.walk;
+    }
 
-    // Stretching
+    // Stretching Setup
     const checkStretching = document.getElementById('check-stretching-done');
     checkStretching.checked = !!this.state.completedSteps[todayStr]['step-stretching'];
     this.completeStepVisual('step-stretching', checkStretching.checked);
-    document.getElementById('stretching-desc').innerText = dayData.cooldown.stretching;
+    document.getElementById('stretching-desc').innerText = dayData.cooldown.stretching || 'Estira suavemente.';
+    
+    const btnStretchingVideo = document.getElementById('btn-stretching-video');
+    if (btnStretchingVideo) {
+      if (dayData.cooldown.stretchingVideo) {
+        btnStretchingVideo.style.display = 'inline-flex';
+        btnStretchingVideo.onclick = () => this.playVideo('Estiramiento Suave', dayData.cooldown.stretchingVideo);
+      } else {
+        btnStretchingVideo.style.display = 'none';
+      }
+    }
 
-    // Hipopresivos
+    // Hipopresivos Setup
     const checkHipopresivos = document.getElementById('check-hipopresivos-done');
     checkHipopresivos.checked = !!this.state.completedSteps[todayStr]['step-hipopresivos'];
     this.completeStepVisual('step-hipopresivos', checkHipopresivos.checked);
     
     const defaultHipoTime = this.state.routine.hipopresivosDefaults[dayId] || "8–10 min";
     document.getElementById('hipopresivos-subtitle').innerText = `${defaultHipoTime} • Hipopresivos Diarios`;
+    
+    const btnHipopresivosVideo = document.getElementById('btn-hipopresivos-video');
+    if (btnHipopresivosVideo) {
+      if (dayData.cooldown.vacuumVideo) {
+        btnHipopresivosVideo.style.display = 'inline-flex';
+        btnHipopresivosVideo.onclick = () => this.playVideo('Hipopresivos Diarios', dayData.cooldown.vacuumVideo);
+      } else {
+        btnHipopresivosVideo.style.display = 'none';
+      }
+    }
 
-    lucide.createIcons();
+    // Sync Independent Hipopresivos Card
+    const checkHipoIndependent = document.getElementById('check-hipo-independent-done');
+    if (checkHipoIndependent) {
+      checkHipoIndependent.checked = !!this.state.completedSteps[todayStr]['step-hipopresivos'];
+    }
+    const hipoIndependentDuration = document.getElementById('hipo-independent-duration');
+    if (hipoIndependentDuration) {
+      hipoIndependentDuration.innerText = `Duración de hoy: ${defaultHipoTime} (Recomendado en ayunas o antes de dormir)`;
+    }
+
+  }
+
+  toggleIndependentHipo(isChecked) {
+    const todayStr = this.getTodayDateString();
+    this.saveCheckState('step-hipopresivos', isChecked);
+    
+    // Sync accordion checkbox
+    const accCheck = document.getElementById('check-hipopresivos-done');
+    if (accCheck) accCheck.checked = isChecked;
+    this.completeStepVisual('step-hipopresivos', isChecked);
+  }
+
+  playHipoVideo() {
+    const dayId = this.state.activeDay;
+    const dayData = this.state.routine.days.find(d => d.id === dayId);
+    const videoUrl = (dayData && dayData.cooldown && dayData.cooldown.vacuumVideo) || 'https://www.youtube.com/watch?v=rep-q_aO1Yg';
+    this.playVideo('Hipopresivos Diarios', videoUrl);
+  }
+
+  startIndependentHipoTimer() {
+    const dayId = this.state.activeDay;
+    const routineDay = this.state.routine.days.find(d => d.id === dayId);
+    let duration = 600; // 10 min
+    if (routineDay) {
+      const durationStr = this.state.routine.hipopresivosDefaults[dayId] || "10 min";
+      const match = durationStr.match(/(\d+)/);
+      if (match) duration = parseInt(match[1]) * 60;
+    }
+    this.startTimer(duration, false, "Hipopresivos Diarios", "hipopresivos");
   }
 
   // ACCORDIONS AND GENERAL STEPS PROGRESS
@@ -791,21 +922,37 @@ class FemmeFitApp {
   }
 
   // REST TIMER CORE
-  startTimer(seconds, isUnilateral) {
+  startTimer(seconds, isUnilateral, title = "Descanso", autoCheckStepId = null) {
     // Clear previous timer
     if (this.timerInterval) clearInterval(this.timerInterval);
 
     this.timerRemaining = seconds;
+    this.timerTarget = seconds;
     this.isTimerPaused = false;
+    this.autoCheckStepId = autoCheckStepId;
 
     // Show Rest Timer floating drawer
     const drawer = document.getElementById('floating-timer');
     drawer.classList.add('show');
 
+    // Set title
+    const titleEl = document.getElementById('timer-title-text');
+    if (titleEl) {
+      titleEl.innerHTML = `<i data-lucide="timer" style="width: 16px; height: 16px;"></i> ${title}`;
+      lucide.createIcons();
+    }
+
     // Unilateral UI states
+    const unilateralSection = document.getElementById('timer-unilateral-section');
     const unilateralCheckbox = document.getElementById('timer-unilateral-checkbox');
-    unilateralCheckbox.checked = isUnilateral;
-    this.toggleUnilateralRestVisual(isUnilateral, seconds);
+    
+    if (isUnilateral && unilateralSection) {
+      unilateralSection.style.display = 'flex';
+      unilateralCheckbox.checked = isUnilateral;
+      this.toggleUnilateralRestVisual(isUnilateral, seconds);
+    } else if (unilateralSection) {
+      unilateralSection.style.display = 'none';
+    }
 
     this.updateTimerDisplay();
 
@@ -818,6 +965,18 @@ class FemmeFitApp {
           clearInterval(this.timerInterval);
           this.playBeep();
           this.closeTimer();
+          
+          if (this.autoCheckStepId) {
+            const checkEl = document.getElementById(`check-${this.autoCheckStepId}-done`);
+            if (checkEl) {
+              checkEl.checked = true;
+              this.completeStep(this.autoCheckStepId, true);
+            }
+            if (this.autoCheckStepId === 'hipopresivos') {
+              const indCheck = document.getElementById('check-hipo-independent-done');
+              if (indCheck) indCheck.checked = true;
+            }
+          }
         }
       }
     }, 1000);
@@ -832,7 +991,7 @@ class FemmeFitApp {
   }
 
   addTimerTime(seconds) {
-    this.timerRemaining += seconds;
+    this.timerRemaining = Math.max(5, this.timerRemaining + seconds);
     this.updateTimerDisplay();
   }
 
@@ -1081,19 +1240,150 @@ class FemmeFitApp {
       const dayCard = document.createElement('div');
       dayCard.className = 'card routine-day-card';
       
+      // 1. Warmup details
+      const warmupOptionTags = (day.warmup.options || []).map(opt => `<span style="background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; display:inline-block; margin-top:2px;">${opt}</span>`).join(' ');
+      const warmupHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">1. Calentamiento</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openWarmupEdit('${day.id}')" style="padding: 2px 6px; font-size:11px;">Editar</button>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+            <div><strong>Duración:</strong> ${day.warmup.duration}</div>
+            <div><strong>Descripción:</strong> ${day.warmup.description}</div>
+            <div><strong>Opciones:</strong> ${warmupOptionTags || '--'}</div>
+            ${day.warmup.video ? `<div style="margin-top:2px; font-size:11px; color:var(--color-rose); display:flex; align-items:center; gap:4px;"><i data-lucide="video" style="width:10px; height:10px;"></i> Video tutorial configurado</div>` : ''}
+          </div>
+        </div>
+      `;
+
+      // 2. Mobility details
+      const totalMob = (day.mobility.exercises || []).length;
+      let mobilityRows = '';
+      (day.mobility.exercises || []).forEach((mob, idx) => {
+        mobilityRows += `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.03); padding: 6px 0;">
+            <div style="font-size:12px; max-width: 55%;">
+              <strong>${mob.name}</strong> (${mob.reps})
+              ${mob.video ? `<div style="font-size:10px; color:var(--color-rose); margin-top:2px; display:flex; align-items:center; gap:4px;"><i data-lucide="video" style="width:9px; height:9px;"></i> Video listo</div>` : ''}
+            </div>
+            <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+              <button class="btn btn-secondary btn-small" onclick="app.moveMobilityExercise('${day.id}', ${idx}, -1)" style="padding: 2px 5px; font-size:11px;" ${idx === 0 ? 'disabled' : ''}>↑</button>
+              <button class="btn btn-secondary btn-small" onclick="app.moveMobilityExercise('${day.id}', ${idx}, 1)" style="padding: 2px 5px; font-size:11px;" ${idx === totalMob - 1 ? 'disabled' : ''}>↓</button>
+              <button class="btn btn-secondary btn-small" onclick="app.openMobilityEdit('${day.id}', ${idx})" style="padding: 2px 6px; font-size:11px;">Editar</button>
+            </div>
+          </div>
+        `;
+      });
+      const mobilityHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">2. Movilidad (${day.mobility.rounds} rondas)</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openMobilityAdd('${day.id}')" style="padding: 2px 6px; font-size:11px;">+ Agregar</button>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            ${mobilityRows || '<p style="font-size:11px; color:var(--text-muted); margin:0;">Sin ejercicios de movilidad.</p>'}
+          </div>
+        </div>
+      `;
+
+      // 3. Central Exercises details
+      const totalEx = day.exercises.length;
       let exercisesHtml = '';
-      day.exercises.forEach(ex => {
+      day.exercises.forEach((ex, exIdx) => {
         exercisesHtml += `
-          <div class="routine-exercise-item">
-            <div>
-              <div style="font-weight:600; font-size:14px;">${ex.name}</div>
-              <div style="font-size:12px; color: var(--text-secondary); margin-top:2px;">
+          <div class="routine-exercise-item" style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; justify-content: space-between; align-items: center;">
+            <div style="max-width:55%;">
+              <div style="font-weight:600; font-size:13px;">${ex.name}</div>
+              <div style="font-size:11px; color: var(--text-secondary); margin-top:2px;">
                 ${ex.sets} series x ${ex.repsRange} reps • ${ex.rest}s descanso
+                ${ex.video ? `<br/><span style="color:var(--color-rose); font-size:10px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="video" style="width:9px; height:9px;"></i> Video listo</span>` : ''}
               </div>
             </div>
-            <button class="btn btn-secondary btn-small" onclick="app.openEditModal('${day.id}', '${ex.id}')">
-              <i data-lucide="edit-3" style="width:12px; height:12px;"></i> Editar
-            </button>
+            <div style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+              <button class="btn btn-secondary btn-small" onclick="app.moveExercise('${day.id}', ${exIdx}, -1)" style="padding: 2px 5px; font-size:11px;" ${exIdx === 0 ? 'disabled' : ''}>↑</button>
+              <button class="btn btn-secondary btn-small" onclick="app.moveExercise('${day.id}', ${exIdx}, 1)" style="padding: 2px 5px; font-size:11px;" ${exIdx === totalEx - 1 ? 'disabled' : ''}>↓</button>
+              <button class="btn btn-secondary btn-small" onclick="app.openEditModal('${day.id}', '${ex.id}')" style="padding: 2px 6px; font-size:11px;">Editar</button>
+            </div>
+          </div>
+        `;
+      });
+      const exercisesSectionHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">3. Ejercicios Principales</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openAddExerciseModal('${day.id}')" style="padding: 2px 6px; font-size:11px;">+ Agregar</button>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            ${exercisesHtml || '<p style="font-size:11px; color:var(--text-muted); margin:0;">Sin ejercicios principales.</p>'}
+          </div>
+        </div>
+      `;
+
+      // 4. Activation / approximation details
+      const activationHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">3a. Activación / Aproximación</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openActivationEdit('${day.id}')" style="padding: 2px 6px; font-size:11px;">Editar</button>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+            <div><strong>¿Activa?:</strong> ${day.hasApproximation ? 'Sí' : 'No'}</div>
+            ${day.hasApproximation ? `<div style="font-size:11px; color:var(--text-muted); max-width:100%;">${day.approximationInfo || '--'}</div>` : ''}
+            ${day.activationVideo ? `<div style="font-size:11px; color:var(--color-rose); display:flex; align-items:center; gap:4px;"><i data-lucide="video" style="width:9px; height:9px;"></i> Video listo</div>` : ''}
+          </div>
+        </div>
+      `;
+
+      // 5. Cardio details
+      const cardioHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">5. Cardio</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openCardioEdit('${day.id}')" style="padding: 2px 6px; font-size:11px;">Editar</button>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); display: flex; flex-direction: column; gap: 4px;">
+            <div><strong>¿Tiene cardio?:</strong> ${day.cardio ? 'Sí' : 'No'}</div>
+            ${day.cardio && day.cardioInfo ? `
+              <div><strong>Duración:</strong> ${day.cardioInfo.duration}</div>
+              <div><strong>Tipo:</strong> ${day.cardioInfo.type}</div>
+              <div><strong>Intensidad:</strong> ${day.cardioInfo.intensity}</div>
+              ${day.cardioInfo.video ? `<div style="margin-top:2px; font-size:11px; color:var(--color-rose); display:flex; align-items:center; gap:4px;"><i data-lucide="video" style="width:10px; height:10px;"></i> Video tutorial listo</div>` : ''}
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      // 6. Cooldown details
+      const cooldownHtml = `
+        <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; border: 1px solid var(--border-glass);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:13px; color:var(--text-primary);">6. Vuelta a la Calma + Hipopresivos</strong>
+            <button class="btn btn-secondary btn-small" onclick="app.openCooldownEdit('${day.id}')" style="padding: 2px 6px; font-size:11px;">Editar</button>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:4px;">
+            <div><strong>Caminata:</strong> ${day.cooldown.walk || 'Opcional'} ${day.cooldown.walkVideo ? '<span style="color:var(--color-rose); font-size:10px;">(Video)</span>' : ''}</div>
+            <div><strong>Estiramiento:</strong> ${day.cooldown.stretching || 'Opcional'} ${day.cooldown.stretchingVideo ? '<span style="color:var(--color-rose); font-size:10px;">(Video)</span>' : ''}</div>
+            <div><strong>Hipopresivos (Vacuum):</strong> ${day.cooldown.stomachVacuum || 'Opcional'} ${day.cooldown.vacuumVideo ? '<span style="color:var(--color-rose); font-size:10px;">(Video)</span>' : ''}</div>
+          </div>
+        </div>
+      `;
+
+      // Section Order controls (display sorted by day.sectionOrder or default)
+      const defaultSectionOrder = ['warmup', 'mobility', 'activation', 'pesas', 'cardio', 'cooldown'];
+      const sectionOrder = day.sectionOrder || defaultSectionOrder;
+      const sectionMap = { warmup: warmupHtml, mobility: mobilityHtml, activation: activationHtml, pesas: exercisesSectionHtml, cardio: cardioHtml, cooldown: cooldownHtml };
+      const sectionLabels = { warmup: 'Calentamiento', mobility: 'Movilidad', activation: 'Activación', pesas: 'Ejercicios Principales', cardio: 'Cardio', cooldown: 'Vuelta a la Calma' };
+      
+      let orderedSectionsHtml = '';
+      sectionOrder.forEach((secId, secIdx) => {
+        orderedSectionsHtml += `
+          <div style="position:relative;">
+            <div style="position:absolute; top:8px; right:8px; display:flex; gap:4px; z-index:2;">
+              <button class="btn btn-secondary btn-small" onclick="app.moveSection('${day.id}', '${secId}', -1)" style="padding: 1px 4px; font-size:10px; opacity:0.7;" ${secIdx === 0 ? 'disabled' : ''}>↑</button>
+              <button class="btn btn-secondary btn-small" onclick="app.moveSection('${day.id}', '${secId}', 1)" style="padding: 1px 4px; font-size:10px; opacity:0.7;" ${secIdx === sectionOrder.length - 1 ? 'disabled' : ''}>↓</button>
+            </div>
+            ${sectionMap[secId] || ''}
           </div>
         `;
       });
@@ -1107,7 +1397,10 @@ class FemmeFitApp {
           <i data-lucide="chevron-down" id="arrow-${day.id}"></i>
         </div>
         <div id="exercises-editor-${day.id}" style="margin-top: 14px; display: none;">
-          ${exercisesHtml}
+          <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px; padding: 6px 10px; background:rgba(168,85,247,0.06); border-radius:6px;">
+            💡 Usa las flechas ↑↓ en cada sección para cambiar el orden del entrenamiento de hoy
+          </p>
+          ${orderedSectionsHtml}
         </div>
       `;
       container.appendChild(dayCard);
@@ -1132,6 +1425,7 @@ class FemmeFitApp {
   openEditModal(dayId, exId) {
     this.editingDayId = dayId;
     this.editingExId = exId;
+    this.isAddingExercise = false;
 
     const day = this.state.routine.days.find(d => d.id === dayId);
     const ex = day.exercises.find(e => e.id === exId);
@@ -1140,8 +1434,25 @@ class FemmeFitApp {
     document.getElementById('edit-ex-sets').value = ex.sets;
     document.getElementById('edit-ex-reps').value = ex.repsRange;
     document.getElementById('edit-ex-rest').value = ex.rest;
-    document.getElementById('edit-ex-keys').value = ex.keys;
-    document.getElementById('edit-ex-video').value = ex.video;
+    document.getElementById('edit-ex-keys').value = ex.keys || '';
+    document.getElementById('edit-ex-video').value = ex.video || '';
+    document.getElementById('btn-delete-exercise').style.display = 'block';
+
+    document.getElementById('edit-exercise-modal').classList.add('active');
+  }
+
+  openAddExerciseModal(dayId) {
+    this.editingDayId = dayId;
+    this.editingExId = null;
+    this.isAddingExercise = true;
+
+    document.getElementById('edit-ex-name').value = '';
+    document.getElementById('edit-ex-sets').value = '3';
+    document.getElementById('edit-ex-reps').value = '10–12';
+    document.getElementById('edit-ex-rest').value = '90';
+    document.getElementById('edit-ex-keys').value = '';
+    document.getElementById('edit-ex-video').value = '';
+    document.getElementById('btn-delete-exercise').style.display = 'none';
 
     document.getElementById('edit-exercise-modal').classList.add('active');
   }
@@ -1152,20 +1463,316 @@ class FemmeFitApp {
 
   saveEditedExercise() {
     const day = this.state.routine.days.find(d => d.id === this.editingDayId);
-    const ex = day.exercises.find(e => e.id === this.editingExId);
+    
+    const name = document.getElementById('edit-ex-name').value.trim();
+    const sets = parseInt(document.getElementById('edit-ex-sets').value) || 3;
+    const repsRange = document.getElementById('edit-ex-reps').value.trim();
+    const rest = parseInt(document.getElementById('edit-ex-rest').value) || 90;
+    const keys = document.getElementById('edit-ex-keys').value.trim();
+    const video = document.getElementById('edit-ex-video').value.trim();
 
-    ex.name = document.getElementById('edit-ex-name').value;
-    ex.sets = parseInt(document.getElementById('edit-ex-sets').value) || ex.sets;
-    ex.repsRange = document.getElementById('edit-ex-reps').value;
-    ex.rest = parseInt(document.getElementById('edit-ex-rest').value) || ex.rest;
-    ex.keys = document.getElementById('edit-ex-keys').value;
-    ex.video = document.getElementById('edit-ex-video').value;
+    if (!name) {
+      alert("Por favor ingresa un nombre para el ejercicio.");
+      return;
+    }
+
+    if (this.isAddingExercise) {
+      const newId = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+      day.exercises.push({
+        id: newId,
+        name,
+        sets,
+        repsRange,
+        rest,
+        type: 'heavy',
+        unilateral: false,
+        keys,
+        video
+      });
+    } else {
+      const ex = day.exercises.find(e => e.id === this.editingExId);
+      if (ex) {
+        ex.name = name;
+        ex.sets = sets;
+        ex.repsRange = repsRange;
+        ex.rest = rest;
+        ex.keys = keys;
+        ex.video = video;
+      }
+    }
 
     this.saveState();
     this.closeEditModal();
     this.renderRoutineEditor();
     this.renderWorkoutFlow();
     alert("Ejercicio guardado correctamente.");
+  }
+
+  deleteExercise() {
+    if (this.isAddingExercise) return;
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    if (day && this.editingExId) {
+      day.exercises = day.exercises.filter(e => e.id !== this.editingExId);
+      this.saveState();
+    }
+    this.closeEditModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Ejercicio eliminado correctamente.");
+  }
+
+  // MOVE EXERCISE UP/DOWN within main exercises list
+  moveExercise(dayId, currentIndex, direction) {
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    if (!day) return;
+    const newIndex = currentIndex + direction;
+    if (newIndex < 0 || newIndex >= day.exercises.length) return;
+    const tmp = day.exercises[currentIndex];
+    day.exercises[currentIndex] = day.exercises[newIndex];
+    day.exercises[newIndex] = tmp;
+    this.saveState();
+    this.renderRoutineEditor();
+    // re-open the card that was open
+    const block = document.getElementById(`exercises-editor-${dayId}`);
+    const arrow = document.getElementById(`arrow-${dayId}`);
+    if (block) { block.style.display = 'block'; if (arrow) arrow.style.transform = 'rotate(180deg)'; }
+  }
+
+  // MOVE MOBILITY EXERCISE UP/DOWN
+  moveMobilityExercise(dayId, currentIndex, direction) {
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    if (!day || !day.mobility || !day.mobility.exercises) return;
+    const newIndex = currentIndex + direction;
+    if (newIndex < 0 || newIndex >= day.mobility.exercises.length) return;
+    const tmp = day.mobility.exercises[currentIndex];
+    day.mobility.exercises[currentIndex] = day.mobility.exercises[newIndex];
+    day.mobility.exercises[newIndex] = tmp;
+    this.saveState();
+    this.renderRoutineEditor();
+    const block = document.getElementById(`exercises-editor-${dayId}`);
+    const arrow = document.getElementById(`arrow-${dayId}`);
+    if (block) { block.style.display = 'block'; if (arrow) arrow.style.transform = 'rotate(180deg)'; }
+  }
+
+  // MOVE SECTION UP/DOWN within a day
+  moveSection(dayId, sectionId, direction) {
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    if (!day) return;
+    const defaultOrder = ['warmup', 'mobility', 'activation', 'pesas', 'cardio', 'cooldown'];
+    if (!day.sectionOrder) day.sectionOrder = [...defaultOrder];
+    const currentIdx = day.sectionOrder.indexOf(sectionId);
+    if (currentIdx === -1) return;
+    const newIdx = currentIdx + direction;
+    if (newIdx < 0 || newIdx >= day.sectionOrder.length) return;
+    const tmp = day.sectionOrder[currentIdx];
+    day.sectionOrder[currentIdx] = day.sectionOrder[newIdx];
+    day.sectionOrder[newIdx] = tmp;
+    this.saveState();
+    this.renderRoutineEditor();
+    const block = document.getElementById(`exercises-editor-${dayId}`);
+    const arrow = document.getElementById(`arrow-${dayId}`);
+    if (block) { block.style.display = 'block'; if (arrow) arrow.style.transform = 'rotate(180deg)'; }
+  }
+
+  // WARMUP EDITORS
+  openWarmupEdit(dayId) {
+    this.editingDayId = dayId;
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    document.getElementById('edit-warmup-duration').value = day.warmup.duration;
+    document.getElementById('edit-warmup-description').value = day.warmup.description || '';
+    document.getElementById('edit-warmup-options').value = (day.warmup.options || []).join(', ');
+    document.getElementById('edit-warmup-video').value = day.warmup.video || '';
+    document.getElementById('edit-warmup-modal').classList.add('active');
+  }
+
+  closeWarmupModal() {
+    document.getElementById('edit-warmup-modal').classList.remove('active');
+  }
+
+  saveWarmup() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    day.warmup.duration = document.getElementById('edit-warmup-duration').value;
+    day.warmup.description = document.getElementById('edit-warmup-description').value;
+    day.warmup.options = document.getElementById('edit-warmup-options').value.split(',').map(s => s.trim()).filter(Boolean);
+    day.warmup.video = document.getElementById('edit-warmup-video').value.trim();
+    
+    this.saveState();
+    this.closeWarmupModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Calentamiento guardado correctamente.");
+  }
+
+  // MOBILITY EDITORS
+  openMobilityEdit(dayId, index) {
+    this.editingDayId = dayId;
+    this.editingMobilityIndex = index;
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    const ex = day.mobility.exercises[index];
+    
+    document.getElementById('mobility-modal-title').innerText = 'Editar Ejercicio de Movilidad';
+    document.getElementById('edit-mob-name').value = ex.name;
+    document.getElementById('edit-mob-reps').value = ex.reps;
+    document.getElementById('edit-mob-video').value = ex.video || '';
+    document.getElementById('btn-delete-mobility').style.display = 'block';
+    
+    document.getElementById('edit-mobility-modal').classList.add('active');
+  }
+
+  openMobilityAdd(dayId) {
+    this.editingDayId = dayId;
+    this.editingMobilityIndex = null;
+    
+    document.getElementById('mobility-modal-title').innerText = 'Agregar Ejercicio de Movilidad';
+    document.getElementById('edit-mob-name').value = '';
+    document.getElementById('edit-mob-reps').value = '';
+    document.getElementById('edit-mob-video').value = '';
+    document.getElementById('btn-delete-mobility').style.display = 'none';
+    
+    document.getElementById('edit-mobility-modal').classList.add('active');
+  }
+
+  closeMobilityModal() {
+    document.getElementById('edit-mobility-modal').classList.remove('active');
+  }
+
+  saveMobilityExercise() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    const name = document.getElementById('edit-mob-name').value.trim();
+    const reps = document.getElementById('edit-mob-reps').value.trim();
+    const video = document.getElementById('edit-mob-video').value.trim();
+
+    if (!name || !reps) {
+      alert("Por favor completa el nombre y repeticiones.");
+      return;
+    }
+
+    if (this.editingMobilityIndex !== null) {
+      day.mobility.exercises[this.editingMobilityIndex] = { name, reps, video };
+    } else {
+      if (!day.mobility.exercises) day.mobility.exercises = [];
+      day.mobility.exercises.push({ name, reps, video });
+    }
+
+    this.saveState();
+    this.closeMobilityModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Ejercicio de movilidad guardado correctamente.");
+  }
+
+  deleteMobilityExercise() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    if (this.editingMobilityIndex !== null && day) {
+      day.mobility.exercises.splice(this.editingMobilityIndex, 1);
+      this.saveState();
+    }
+    this.closeMobilityModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Ejercicio de movilidad eliminado.");
+  }
+
+  // CARDIO EDITORS
+  openCardioEdit(dayId) {
+    this.editingDayId = dayId;
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    
+    document.getElementById('edit-cardio-enabled').checked = !!day.cardio;
+    document.getElementById('edit-cardio-duration').value = day.cardioInfo ? day.cardioInfo.duration : '15–20 min';
+    document.getElementById('edit-cardio-type').value = day.cardioInfo ? day.cardioInfo.type : '';
+    document.getElementById('edit-cardio-intensity').value = day.cardioInfo ? day.cardioInfo.intensity : 'Suave/moderada';
+    document.getElementById('edit-cardio-video').value = (day.cardioInfo && day.cardioInfo.video) || '';
+    
+    document.getElementById('edit-cardio-modal').classList.add('active');
+  }
+
+  closeCardioModal() {
+    document.getElementById('edit-cardio-modal').classList.remove('active');
+  }
+
+  saveCardio() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    const enabled = document.getElementById('edit-cardio-enabled').checked;
+    
+    day.cardio = enabled;
+    day.cardioInfo = {
+      duration: document.getElementById('edit-cardio-duration').value.trim(),
+      type: document.getElementById('edit-cardio-type').value.trim(),
+      intensity: document.getElementById('edit-cardio-intensity').value.trim(),
+      video: document.getElementById('edit-cardio-video').value.trim()
+    };
+
+    this.saveState();
+    this.closeCardioModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Cardio guardado correctamente.");
+  }
+
+  // ACTIVATION / APPROXIMATION EDITORS
+  openActivationEdit(dayId) {
+    this.editingDayId = dayId;
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    document.getElementById('edit-activation-enabled').checked = !!day.hasApproximation;
+    document.getElementById('edit-activation-info').value = day.approximationInfo || '';
+    document.getElementById('edit-activation-video').value = day.activationVideo || '';
+    document.getElementById('edit-activation-modal').classList.add('active');
+  }
+
+  closeActivationModal() {
+    document.getElementById('edit-activation-modal').classList.remove('active');
+  }
+
+  saveActivation() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    day.hasApproximation = document.getElementById('edit-activation-enabled').checked;
+    day.approximationInfo = document.getElementById('edit-activation-info').value.trim();
+    day.activationVideo = document.getElementById('edit-activation-video').value.trim();
+    this.saveState();
+    this.closeActivationModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Activación guardada correctamente.");
+  }
+
+  // COOLDOWN EDITORS
+  openCooldownEdit(dayId) {
+    this.editingDayId = dayId;
+    const day = this.state.routine.days.find(d => d.id === dayId);
+    
+    document.getElementById('edit-cool-walk').value = day.cooldown.walk || '';
+    document.getElementById('edit-cool-walk-video').value = day.cooldown.walkVideo || '';
+    document.getElementById('edit-cool-stretch').value = day.cooldown.stretching || '';
+    document.getElementById('edit-cool-stretch-video').value = day.cooldown.stretchingVideo || '';
+    document.getElementById('edit-cool-vacuum').value = day.cooldown.stomachVacuum || '';
+    document.getElementById('edit-cool-vacuum-video').value = day.cooldown.vacuumVideo || '';
+    
+    document.getElementById('edit-cooldown-modal').classList.add('active');
+  }
+
+  closeCooldownModal() {
+    document.getElementById('edit-cooldown-modal').classList.remove('active');
+  }
+
+  saveCooldown() {
+    const day = this.state.routine.days.find(d => d.id === this.editingDayId);
+    
+    day.cooldown.walk = document.getElementById('edit-cool-walk').value.trim();
+    day.cooldown.walkVideo = document.getElementById('edit-cool-walk-video').value.trim();
+    day.cooldown.stretching = document.getElementById('edit-cool-stretch').value.trim();
+    day.cooldown.stretchingVideo = document.getElementById('edit-cool-stretch-video').value.trim();
+    day.cooldown.stomachVacuum = document.getElementById('edit-cool-vacuum').value.trim();
+    day.cooldown.vacuumVideo = document.getElementById('edit-cool-vacuum-video').value.trim();
+
+    if (!this.state.routine.hipopresivosDefaults) this.state.routine.hipopresivosDefaults = {};
+    this.state.routine.hipopresivosDefaults[this.editingDayId] = day.cooldown.stomachVacuum;
+
+    this.saveState();
+    this.closeCooldownModal();
+    this.renderRoutineEditor();
+    this.renderWorkoutFlow();
+    alert("Vuelta a la calma guardada correctamente.");
   }
 
   // PROGRESS LOGS & CHARTING (TAB PROGRESO)

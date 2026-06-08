@@ -136,6 +136,33 @@
             <p class="coach-advice-text" id="today-coach-text">Cargando consejos del ciclo...</p>
           </div>
 
+          <!-- Hipopresivos Diarios Card (Independent) -->
+          <div class="card" id="card-independent-hipopresivos" style="border-color: rgba(168, 85, 247, 0.2); background: rgba(168, 85, 247, 0.01); margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h3 style="color: var(--color-violet); display: flex; align-items: center; gap: 6px; font-size:14px; margin:0;">
+                <i data-lucide="wind" style="width: 16px; height: 16px;"></i> Hipopresivos Diarios
+              </h3>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-small" id="btn-hipo-video" onclick="app.playHipoVideo()" style="padding: 4px 8px; font-size:11px; display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="video" style="width: 12px; height: 12px;"></i> Video
+                </button>
+                <button class="btn btn-lavender btn-small" id="btn-hipo-timer" onclick="app.startIndependentHipoTimer()" style="padding: 4px 8px; font-size:11px; display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="timer" style="width: 12px; height: 12px;"></i> Iniciar
+                </button>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <p style="font-size: 11px; color: var(--text-secondary); margin: 0; max-width: 70%;" id="hipo-independent-duration">
+                Duración de hoy: 8–10 min (Recomendado hacer en ayunas o antes de dormir)
+              </p>
+              <label class="check-item" style="margin:0;">
+                <input type="checkbox" id="check-hipo-independent-done" onchange="app.toggleIndependentHipo(this.checked)" />
+                <div class="custom-checkbox"></div>
+                <span style="font-size:12px; font-weight:600;">Hechos</span>
+              </label>
+            </div>
+          </div>
+
           <!-- Day Selection Pills -->
           <div class="day-selector-pills" id="day-selector">
             <button class="pill active" data-day="lunes">Lun</button>
@@ -162,15 +189,18 @@
             </div>
             <div class="flow-step-content">
               <p style="margin-bottom: 12px; font-size: 13px;" id="warmup-desc">No debe cansarte. Solo es para subir temperatura.</p>
-              <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center;">
                 <select id="warmup-machine" style="flex: 1;">
                   <option value="caminadora">Caminadora suave</option>
                   <option value="bicicleta">Bicicleta</option>
                   <option value="eliptica">Elíptica</option>
                   <option value="escaladora">Escaladora suave</option>
                 </select>
-                <button class="btn btn-lavender btn-small" id="btn-start-warmup">
-                  <i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar 5m
+                <button class="btn btn-lavender btn-small" id="btn-start-warmup" style="display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar
+                </button>
+                <button class="btn btn-secondary btn-small" id="btn-warmup-video" style="display:none; padding: 6px 8px;">
+                  <i data-lucide="video" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
               <label class="check-item">
@@ -203,21 +233,26 @@
             </div>
           </div>
 
-          <!-- FLOW: Series de Aproximación -->
+          <!-- FLOW: Series de Aproximación / Activación -->
           <div class="flow-step card" id="step-approximation">
             <div class="flow-step-header" onclick="app.toggleFlowStep('step-approximation')">
               <div>
-                <div class="flow-step-title">3. Series de Aproximación</div>
+                <div class="flow-step-title">3. Activación + Series de Aproximación</div>
                 <div class="flow-step-subtitle">Antes del primer ejercicio pesado</div>
               </div>
               <i data-lucide="chevron-down" class="accordion-arrow"></i>
             </div>
             <div class="flow-step-content">
               <p style="font-size: 13px; margin-bottom: 12px;" id="approx-text">Instrucciones de aproximación...</p>
+              <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center;">
+                <button class="btn btn-secondary btn-small" id="btn-activation-video" style="display:none; padding: 6px 8px; display:flex; align-items:center; gap:4px;">
+                  <i data-lucide="video" style="width: 14px; height: 14px;"></i> Video
+                </button>
+              </div>
               <label class="check-item">
                 <input type="checkbox" id="check-approx-done" onchange="app.completeStep('step-approximation', this.checked)" />
                 <div class="custom-checkbox"></div>
-                <span style="font-weight: 500;">Aproximaciones listas</span>
+                <span style="font-weight: 500;">Activación y aproximaciones listas</span>
               </label>
             </div>
           </div>
@@ -269,9 +304,14 @@
               <i data-lucide="chevron-down" class="accordion-arrow"></i>
             </div>
             <div class="flow-step-content">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span id="cooldown-text-desc">Camina despacio para bajar pulsaciones.</span>
-                <button class="btn btn-lavender btn-small" id="btn-start-cooldown">▶ Iniciar 3m</button>
+              <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+                <span id="cooldown-text-desc" style="flex: 1; font-size: 13px;">Camina despacio para bajar pulsaciones.</span>
+                <button class="btn btn-lavender btn-small" id="btn-start-cooldown" style="display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar
+                </button>
+                <button class="btn btn-secondary btn-small" id="btn-cooldown-video" style="display:none; padding: 6px 8px;">
+                  <i data-lucide="video" style="width: 14px; height: 14px;"></i>
+                </button>
               </div>
               <label class="check-item">
                 <input type="checkbox" id="check-cooldown-done" onchange="app.completeStep('step-cooldown', this.checked)" />
@@ -291,7 +331,12 @@
               <i data-lucide="chevron-down" class="accordion-arrow"></i>
             </div>
             <div class="flow-step-content">
-              <p style="font-size: 13px; margin-bottom: 12px;" id="stretching-desc">Estira los músculos trabajados hoy para relajar el sistema nervioso.</p>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
+                <p style="font-size: 13px; margin: 0; flex: 1;" id="stretching-desc">Estira los músculos trabajados hoy para relajar el sistema nervioso.</p>
+                <button class="btn btn-secondary btn-small" id="btn-stretching-video" style="display:none; padding: 6px 8px; flex-shrink: 0; display:flex; align-items:center; gap:4px;">
+                  <i data-lucide="video" style="width: 14px; height: 14px;"></i> Video
+                </button>
+              </div>
               <label class="check-item">
                 <input type="checkbox" id="check-stretching-done" onchange="app.completeStep('step-stretching', this.checked)" />
                 <div class="custom-checkbox"></div>
@@ -311,8 +356,13 @@
             </div>
             <div class="flow-step-content">
               <p style="font-size: 13px; margin-bottom: 12px;">Ideales para abdomen funcional y postura. Hazlos suave, sin forzar.</p>
-              <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button class="btn btn-accent btn-small" id="btn-start-hipopresivos">▶ Iniciar 10m</button>
+              <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center;">
+                <button class="btn btn-accent btn-small" id="btn-start-hipopresivos" style="display: flex; align-items: center; gap: 4px; flex: 1;">
+                  <i data-lucide="play" style="width: 14px; height: 14px;"></i> Iniciar
+                </button>
+                <button class="btn btn-secondary btn-small" id="btn-hipopresivos-video" style="display:none; padding: 6px 8px; display:flex; align-items:center; gap:4px;">
+                  <i data-lucide="video" style="width: 14px; height: 14px;"></i> Video
+                </button>
               </div>
               <label class="check-item">
                 <input type="checkbox" id="check-hipopresivos-done" onchange="app.completeStep('step-hipopresivos', this.checked)" />
@@ -575,7 +625,7 @@
       <!-- ================= COMPONENT: FLOATING REST TIMER ================= -->
       <div id="floating-timer">
         <div class="timer-header">
-          <span style="font-size: 13px; font-weight: 700; color: var(--color-lavender); display: flex; align-items: center; gap: 6px;">
+          <span id="timer-title-text" style="font-size: 13px; font-weight: 700; color: var(--color-lavender); display: flex; align-items: center; gap: 6px;">
             <i data-lucide="timer" style="width: 16px; height: 16px;"></i> Descanso
           </span>
           <button onclick="app.closeTimer()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
@@ -586,12 +636,13 @@
           <div class="timer-digits" id="timer-digits">02:00</div>
           <div class="timer-controls">
             <button class="btn btn-secondary btn-small" id="btn-timer-pause" onclick="app.toggleTimerPause()">Pausar</button>
+            <button class="btn btn-secondary btn-small" onclick="app.addTimerTime(-30)">-30s</button>
             <button class="btn btn-secondary btn-small" onclick="app.addTimerTime(30)">+30s</button>
             <button class="btn btn-lavender btn-small" onclick="app.resetTimer()">Reiniciar</button>
           </div>
         </div>
         <!-- Unilateral rest option -->
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div id="timer-unilateral-section" style="display: flex; justify-content: space-between; align-items: center;">
           <label class="timer-unilateral-toggle">
             <input type="checkbox" id="timer-unilateral-checkbox" onchange="app.toggleUnilateralRest(this.checked)" style="display:none;" />
             <div class="custom-checkbox" style="width: 16px; height: 16px; border-radius: 4px;"></div>
@@ -649,8 +700,182 @@
               <input type="text" id="edit-ex-video" placeholder="https://www.youtube.com/watch?v=..." />
             </div>
             <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-rose" id="btn-delete-exercise" onclick="app.deleteExercise()" style="flex:1;">Eliminar</button>
               <button class="btn btn-secondary" onclick="app.closeEditModal()" style="flex:1;">Cancelar</button>
-              <button class="btn btn-primary" onclick="app.saveEditedExercise()" style="flex:1;">Guardar Cambios</button>
+              <button class="btn btn-primary" onclick="app.saveEditedExercise()" style="flex:1;">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: WARMUP EDITOR OVERLAY ================= -->
+      <div id="edit-warmup-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3>Editar Calentamiento</h3>
+            <button class="modal-close-btn" onclick="app.closeWarmupModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Duración (ej. 5 a 8 minutos)</label>
+              <input type="text" id="edit-warmup-duration" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Descripción</label>
+              <input type="text" id="edit-warmup-description" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Opciones (separadas por coma)</label>
+              <input type="text" id="edit-warmup-options" placeholder="Caminadora, Bici, Elíptica" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Video Tutorial (YouTube)</label>
+              <input type="text" id="edit-warmup-video" />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-secondary" onclick="app.closeWarmupModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveWarmup()" style="flex:1;">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: MOBILITY EXERCISE EDITOR OVERLAY ================= -->
+      <div id="edit-mobility-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3 id="mobility-modal-title">Editar Ejercicio de Movilidad</h3>
+            <button class="modal-close-btn" onclick="app.closeMobilityModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Nombre del Ejercicio</label>
+              <input type="text" id="edit-mob-name" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Repeticiones / Tiempo (ej. 8 por lado, 15, 30s)</label>
+              <input type="text" id="edit-mob-reps" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Video Tutorial (YouTube)</label>
+              <input type="text" id="edit-mob-video" />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-rose" id="btn-delete-mobility" onclick="app.deleteMobilityExercise()" style="flex:1;">Eliminar</button>
+              <button class="btn btn-secondary" onclick="app.closeMobilityModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveMobilityExercise()" style="flex:1;">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: CARDIO EDITOR OVERLAY ================= -->
+      <div id="edit-cardio-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3>Editar Cardio</h3>
+            <button class="modal-close-btn" onclick="app.closeCardioModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label class="check-item" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="edit-cardio-enabled" />
+              <div class="custom-checkbox"></div>
+              <span style="font-weight: 600;">¿Hacer Cardio este día?</span>
+            </label>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Duración (ej. 15–20 min)</label>
+              <input type="text" id="edit-cardio-duration" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Tipo de Cardio</label>
+              <input type="text" id="edit-cardio-type" placeholder="Caminadora inclinada, bici, etc." />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Intensidad</label>
+              <input type="text" id="edit-cardio-intensity" placeholder="Suave/moderada" />
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Video Tutorial (YouTube)</label>
+              <input type="text" id="edit-cardio-video" />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-secondary" onclick="app.closeCardioModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveCardio()" style="flex:1;">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: COOLDOWN EDITOR OVERLAY ================= -->
+      <div id="edit-cooldown-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px; max-height: 90vh; overflow-y: auto;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3>Editar Vuelta a la Calma</h3>
+            <button class="modal-close-btn" onclick="app.closeCooldownModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <h4 style="color:var(--color-rose); font-size:13px; margin: 4px 0 0 0; font-weight:700;">Caminata Post-Entrenamiento</h4>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Descripción (ej. 3–5 min caminando suave)</label>
+              <input type="text" id="edit-cool-walk" />
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Video Caminata</label>
+              <input type="text" id="edit-cool-walk-video" />
+            </div>
+
+            <h4 style="color:var(--color-rose); font-size:13px; margin: 8px 0 0 0; font-weight:700;">Estiramientos</h4>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Descripción (ej. 5 min estiramiento suave)</label>
+              <input type="text" id="edit-cool-stretch" />
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Video Estiramientos</label>
+              <input type="text" id="edit-cool-stretch-video" />
+            </div>
+
+            <h4 style="color:var(--color-violet); font-size:13px; margin: 8px 0 0 0; font-weight:700;">Hipopresivos (Vacuum)</h4>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Descripción (ej. 8–10 min hipopresivos)</label>
+              <input type="text" id="edit-cool-vacuum" />
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; display:block;">Video Hipopresivos</label>
+              <input type="text" id="edit-cool-vacuum-video" />
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button class="btn btn-secondary" onclick="app.closeCooldownModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveCooldown()" style="flex:1;">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= COMPONENT: ACTIVATION/APPROXIMATION EDITOR OVERLAY ================= -->
+      <div id="edit-activation-modal" class="modal-overlay">
+        <div class="modal-content" style="padding: 16px;">
+          <div class="modal-header" style="padding: 0 0 12px; margin-bottom: 12px;">
+            <h3>Editar Activación / Aproximación</h3>
+            <button class="modal-close-btn" onclick="app.closeActivationModal()">&times;</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label class="check-item" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="edit-activation-enabled" />
+              <div class="custom-checkbox"></div>
+              <span style="font-weight: 600;">¿Hacer series de activación este día?</span>
+            </label>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Instrucciones (ej. 2x10 sentadillas vacías, 1x15 peso muerto rumano suave)</label>
+              <textarea id="edit-activation-info" rows="4" placeholder="Describe las series de aproximación o activación de glúteos/core aquí..."></textarea>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display:block;">Video Tutorial (YouTube)</label>
+              <input type="text" id="edit-activation-video" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <button class="btn btn-secondary" onclick="app.closeActivationModal()" style="flex:1;">Cancelar</button>
+              <button class="btn btn-primary" onclick="app.saveActivation()" style="flex:1;">Guardar</button>
             </div>
           </div>
         </div>
